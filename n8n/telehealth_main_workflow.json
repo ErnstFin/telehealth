@@ -1,0 +1,221 @@
+{
+  "name": "TeleHealth - Main Chatbot & Knowledge Retrieval Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "id": "node-telegram-trigger",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        200,
+        300
+      ],
+      "webhookId": "telehealth-telegram-webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract user query and metadata\nconst message = $json.message || {};\nconst text = (message.text || '').trim();\nconst chatId = message.chat ? message.chat.id : '';\nconst user = message.from || {};\n\nreturn {\n  json: {\n    text: text,\n    telegramChatId: String(chatId),\n    telegramUserId: String(user.id || chatId),\n    username: user.username || 'telegram_user',\n    firstName: user.first_name || 'User',\n    lastName: user.last_name || '',\n    messageId: String(message.message_id || '')\n  }\n};"
+      },
+      "id": "node-extract-payload",
+      "name": "Extract Message Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        420,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:3000/api/chat/ask",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"text\": \"{{ $json.text }}\",\n  \"telegramChatId\": \"{{ $json.telegramChatId }}\",\n  \"telegramUserId\": \"{{ $json.telegramUserId }}\",\n  \"username\": \"{{ $json.username }}\",\n  \"firstName\": \"{{ $json.firstName }}\",\n  \"lastName\": \"{{ $json.lastName }}\",\n  \"messageId\": \"{{ $json.messageId }}\"\n}",
+        "options": {}
+      },
+      "id": "node-telehealth-api",
+      "name": "TeleHealth AI & Knowledge API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        640,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.data.status }}",
+              "operation": "equals",
+              "value2": "ANSWERED_BY_KB"
+            }
+          ]
+        }
+      },
+      "id": "node-if-kb-found",
+      "name": "IF Knowledge Found",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        880,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Extract Message Data').item.json.telegramChatId }}",
+        "text": "={{ $json.data.responseMessage }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "node-send-kb-telegram",
+      "name": "Send Validated Answer to Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1120,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.data.status }}",
+              "operation": "equals",
+              "value2": "FORWARDED_TO_DOCTOR"
+            }
+          ]
+        }
+      },
+      "id": "node-if-forward-doctor",
+      "name": "IF Forwarded to Doctor",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Extract Message Data').item.json.telegramChatId }}",
+        "text": "={{ $json.data.responseMessage }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "node-send-doctor-notice",
+      "name": "Send Doctor Waiting Notice to Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1380,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Extract Message Data').item.json.telegramChatId }}",
+        "text": "={{ $json.data.responseMessage }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "node-send-non-health-refusal",
+      "name": "Send Non-Health Disclaimer",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1380,
+        540
+      ]
+    }
+  ],
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Extract Message Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Message Data": {
+      "main": [
+        [
+          {
+            "node": "TeleHealth AI & Knowledge API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "TeleHealth AI & Knowledge API": {
+      "main": [
+        [
+          {
+            "node": "IF Knowledge Found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Knowledge Found": {
+      "main": [
+        [
+          {
+            "node": "Send Validated Answer to Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "IF Forwarded to Doctor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Forwarded to Doctor": {
+      "main": [
+        [
+          {
+            "node": "Send Doctor Waiting Notice to Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Non-Health Disclaimer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

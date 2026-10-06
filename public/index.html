@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TeleHealth - Web Administrator & Healthcare Chatbot System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/app.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <i class="fa-solid fa-heart-pulse"></i>
+                </div>
+                <div class="sidebar-brand">
+                    <h1>TeleHealth</h1>
+                    <span>Medical Chatbot & KB</span>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section-title">Menu Utama</div>
+                <button class="nav-item active" data-tab="dashboard">
+                    <i class="fa-solid fa-chart-pie"></i>
+                    <span>Dashboard</span>
+                </button>
+                <button class="nav-item" data-tab="knowledge">
+                    <i class="fa-solid fa-book-medical"></i>
+                    <span>Knowledge Base</span>
+                </button>
+                <button class="nav-item" data-tab="validator">
+                    <i class="fa-solid fa-shield-halved"></i>
+                    <span>Knowledge Validator</span>
+                    <span class="nav-badge" id="nav-pending-badge">0</span>
+                </button>
+                <button class="nav-item" data-tab="doctor-queue">
+                    <i class="fa-solid fa-user-doctor"></i>
+                    <span>Doctor Questions</span>
+                    <span class="nav-badge danger" id="nav-doctor-badge">0</span>
+                </button>
+                <button class="nav-item" data-tab="journal-input">
+                    <i class="fa-solid fa-file-arrow-up"></i>
+                    <span>Import Dokumen (PDF/DOCX)</span>
+                    <span class="nav-badge info">Auto</span>
+                </button>
+
+                <div class="nav-section-title">Sistem & Audit</div>
+                <button class="nav-item" data-tab="validation-logs">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                    <span>Validation Logs</span>
+                </button>
+                <button class="nav-item" data-tab="categories-sources">
+                    <i class="fa-solid fa-tags"></i>
+                    <span>Kategori & Sumber</span>
+                </button>
+                <button class="nav-item" data-tab="settings">
+                    <i class="fa-solid fa-sliders"></i>
+                    <span>Bot Telegram & Settings</span>
+                </button>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="admin-avatar">ADM</div>
+                <div class="admin-info">
+                    <div class="admin-name">Administrator Medis</div>
+                    <div class="admin-role">Super Admin & Validator</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Wrapper -->
+        <div class="main-wrapper">
+            <!-- Topbar -->
+            <header class="topbar">
+                <div class="topbar-left">
+                    <h2 class="topbar-title" id="page-current-title">Dashboard Overview</h2>
+                </div>
+                <div class="topbar-actions">
+                    <div class="tg-live-indicator" id="topbar-tg-indicator" title="Integrasi bot Telegram resmi aktif untuk pengguna">
+                        <span class="tg-dot"></span>
+                        <span><i class="fa-brands fa-telegram"></i> Bot Telegram Terhubung</span>
+                    </div>
+                    <button class="btn btn-sm btn-outline-primary" id="btn-refresh-data" title="Muat ulang data">
+                        <i class="fa-solid fa-rotate"></i> Refresh
+                    </button>
+                </div>
+            </header>
+
+            <!-- Content Body -->
+            <main class="content-body">
+                <!-- TAB 1: DASHBOARD -->
+                <section class="page-tab-content active" id="tab-dashboard">
+                    <div class="page-header">
+                        <div class="page-header-text">
+                            <h2>Ringkasan Eksekutif & Statistik</h2>
+                            <p>Pantau performa knowledge base, antrian dokter, dan aktivitas validasi sistem secara real-time.</p>
+                        </div>
+                        <div class="page-header-actions">
+                            <button class="btn btn-primary" onclick="App.openAddKnowledgeModal()">
+                                <i class="fa-solid fa-plus"></i> Tambah Knowledge
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Stat Cards -->
+                    <div class="stat-grid">
+                        <div class="stat-card">
+                            <div class="stat-card-info">
+                                <h3>Total Knowledge</h3>
+                                <div class="stat-number" id="stat-total-knowledge">0</div>
+                                <div class="stat-sub" id="stat-active-sub">Tervalidasi & Aktif</div>
+                            </div>
+                            <div class="stat-icon-wrapper primary">
+                                <i class="fa-solid fa-book-medical"></i>
+                            </div>
+                        </div>
+
+                        <div class="stat-card">
+                            <div class="stat-card-info">
+                                <h3>Pending Validation</h3>
+                                <div class="stat-number" id="stat-pending-val">0</div>
+                                <div class="stat-sub">Menunggu Review Admin</div>
+                            </div>
+                            <div class="stat-icon-wrapper warning">
+                                <i class="fa-solid fa-shield-halved"></i>
+                            </div>
+                        </div>
+
+                        <div class="stat-card">
+                            <div class="stat-card-info">
+                                <h3>Doctor Questions</h3>
+                                <div class="stat-number" id="stat-doctor-waiting">0</div>
+                                <div class="stat-sub">Menunggu Jawaban Dokter</div>
+                            </div>
+                            <div class="stat-icon-wrapper danger">
+                                <i class="fa-solid fa-user-doctor"></i>
+                            </div>
+                        </div>
+
+                        <div class="stat-card">
+                            <div class="stat-card-info">
+                                <h3>Total Inquiries</h3>
+                                <div class="stat-number" id="stat-total-questions">0</div>
+                                <div class="stat-sub" id="stat-answered-sub">Pertanyaan Diproses</div>
+                            </div>
+                            <div class="stat-icon-wrapper info">
+                                <i class="fa-solid fa-comments"></i>
+                            </div>
+                        </div>
+
+                        <div class="stat-card">
+                            <div class="stat-card-info">
+                                <h3>Rejected Knowledge</h3>
+                                <div class="stat-number" id="stat-rejected-knowledge">0</div>
+                                <div class="stat-sub">Tidak Memenuhi Syarat</div>
+                            </div>
+                            <div class="stat-icon-wrapper danger">
+                                <i class="fa-solid fa-ban"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Charts Grid -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 24px; margin-bottom: 24px;">
+                        <div class="app-card" style="margin-bottom: 0;">
+                            <div class="app-card-header">
+                                <div class="app-card-title">
+                                    <i class="fa-solid fa-chart-pie" style="color: var(--primary);"></i> Distribusi Knowledge per Kategori
+                                </div>
+                            </div>
+                            <div class="app-card-body" style="height: 280px; display: flex; align-items: center; justify-content: center;">
+                                <canvas id="chart-categories"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="app-card" style="margin-bottom: 0;">
+                            <div class="app-card-header">
+                                <div class="app-card-title">
+                                    <i class="fa-solid fa-chart-column" style="color: var(--secondary);"></i> Resolusi Pertanyaan Pengguna
+                                </div>
+                            </div>
+                            <div class="app-card-body" style="height: 280px; display: flex; align-items: center; justify-content: center;">
+                                <canvas id="chart-resolution"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Activity & Inquiries Grid -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 24px;">
+                        <!-- Recent Inquiries -->
+                        <div class="app-card" style="margin-bottom: 0;">
+                            <div class="app-card-header">
+                                <div class="app-card-title">
+                                    <i class="fa-solid fa-clock"></i> Pertanyaan Terbaru Pengguna Telegram
+                                </div>
+                                <button class="btn btn-sm btn-secondary" onclick="App.switchTab('doctor-queue')">
+                                    <i class="fa-solid fa-user-doctor"></i> Antrian Dokter
+                                </button>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Pertanyaan</th>
+                                            <th>Status</th>
+                                            <th>Relevansi</th>
+                                            <th>Waktu</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="dashboard-recent-questions-body">
+                                        <tr><td colspan="4" style="text-align: center; padding: 20px;">Memuat riwayat pertanyaan...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Recent Validation Logs -->
+                        <div class="app-card" style="margin-bottom: 0;">
+                            <div class="app-card-header">
+                                <div class="app-card-title">
+                                    <i class="fa-solid fa-list-check"></i> Riwayat Validasi Terakhir
+                                </div>
+                                <button class="btn btn-sm btn-secondary" onclick="App.switchTab('validation-logs')">Lihat Semua</button>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Aksi</th>
+                                            <th>Validator</th>
+                                            <th>Keterangan</th>
+                                            <th>Waktu</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="dashboard-recent-logs-body">
+                                        <tr><td colspan="4" style="text-align: center; padding: 20px;">Memuat riwayat validasi...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- TAB 2: KNOWLEDGE BASE -->
+                <section class="page-tab-content" id="tab-knowledge">
+                    <div class="page-header">
+                        <div class="page-header-text">
+                            <h2>Knowledge Base Tervalidasi</h2>
+                            <p>Hanya knowledge berstatus <strong>VALID / ACTIVE</strong> yang digunakan oleh chatbot untuk menjawab pertanyaan Telegram.</p>
+                        </div>
+                        <div class="page-header-actions" style="display: flex; gap: 10px; align-items: center;">
+                            <button class="btn btn-outline-primary" onclick="App.switchTab('journal-input')" title="Unggah File Dokumen / Batch Import">
+                                <i class="fa-solid fa-file-arrow-up"></i> Import Dokumen (PDF/DOCX)
+                            </button>
+                            <button class="btn btn-primary" onclick="App.openAddKnowledgeModal()">
+                                <i class="fa-solid fa-plus"></i> Tambah Knowledge
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="app-card">
+                        <div class="app-card-body">
+                            <!-- Filter Bar -->
+                            <div class="filter-bar">
+                                <div class="search-input-wrapper">
+                                    <i class="fa-solid fa-magnifying-glass"></i>
+                                    <input type="text" class="search-input" id="kb-search-input" placeholder="Cari berdasarkan judul, topik, atau kata kunci...">
+                                </div>
+                                <select class="select-filter" id="kb-filter-category">
+                                    <option value="ALL">Semua Kategori</option>
+                                </select>
+                                <select class="select-filter" id="kb-filter-status">
+                                    <option value="ALL">Semua Status</option>
+                                    <option value="ACTIVE" selected>Hanya ACTIVE</option>
+                                    <option value="INACTIVE">Hanya INACTIVE</option>
+                                </select>
+                            </div>
+
+                            <!-- Table -->
+                            <div class="table-responsive">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 60px;">ID</th>
+                                            <th>Judul & Topik</th>
+                                            <th>Kategori</th>
+                                            <th>Sumber Terverifikasi</th>
+                                            <th>Validator</th>
+                                            <th>Status</th>
+                                            <th style="width: 140px; text-align: right;">Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="kb-table-body">
+                                        <tr><td colspan="7" style="text-align: center; padding: 30px;">Memuat Knowledge Base...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- TAB 3: KNOWLEDGE VALIDATOR -->
+                <section class="page-tab-content" id="tab-validator">
+                    <div class="page-header">
+                        <div class="page-header-text">
+                            <h2>Knowledge Validator (Candidate Review)</h2>
+                            <p>Tinjau dan validasi respon dokter serta literatur baru sebelum dimasukkan ke dalam Knowledge Base chatbot.</p>
+                        </div>
+                        <div class="page-header-actions">
+                            <select class="select-filter" id="validator-filter-status">
+                                <option value="PENDING" selected>Menunggu Validasi (PENDING)</option>
+                                <option value="VALID">Sudah Tervalidasi (VALID)</option>
+                                <option value="REJECTED">Ditolak (REJECTED)</option>
+                                <option value="ALL">Semua Status</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div id="validator-candidates-container">
+                        <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+                            Memuat daftar candidate...
+                        </div>
+                    </div>
+                </section>
+
+                <!-- TAB 4: DOCTOR QUEUE -->
+                <section class="page-tab-content" id="tab-doctor-queue">
+                    <div class="page-header">
+                        <div class="page-header-text">
+                            <h2>Antrian Pertanyaan Dokter (Doctor Questions)</h2>
+                            <p>Daftar pertanyaan pengguna Telegram yang belum terjawab oleh Knowledge Base dan memerlukan jawaban tenaga medis.</p>
+                        </div>
+                        <div class="page-header-actions">
+                            <select class="select-filter" id="doctor-filter-status">
+                                <option value="ALL">Semua Status</option>
+                                <option value="WAITING" selected>Menunggu Dokter (WAITING)</option>
+                                <option value="ASSIGNED">Sedang Ditangani (ASSIGNED)</option>
+                                <option value="ANSWERED">Sudah Dijawab (ANSWERED)</option>
+                                <option value="ARCHIVED">Diarsipkan (ARCHIVED)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="app-card">
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 60px;">ID</th>
+                                        <th>Pertanyaan Pengguna</th>
+                                        <th>Chat ID / User</th>
+                                        <th>Status</th>
+                                        <th>Dokter Penjawab</th>
+                                        <th>Waktu Masuk</th>
+                                        <th style="width: 140px; text-align: right;">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="doctor-queue-table-body">
+                                    <tr><td colspan="7" style="text-align: center; padding: 30px;">Memuat antrian dokter...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- TAB 5: INPUT & IMPORT DOKUMEN (PDF, DOCX, MANUAL) -->
+                <section class="page-tab-content" id="tab-journal-input">
+                    <div class="page-header">
+                        <div class="page-header-text">
+                            <h2>Input & Import Dokumen Pengetahuan Medis</h2>
+                            <p>Unggah file eksternal tervalidasi (PDF, DOCX) atau masukkan literatur medis manual untuk memperkaya Knowledge Base.</p>
+                        </div>
+                    </div>
+
+                    <!-- Sub-tabs Navigation -->
+                    <div class="doc-input-tabs">
+                        <button class="doc-tab-btn active" id="btn-subtab-single" onclick="App.switchDocSubTab('single')">
+                            <i class="fa-solid fa-file-pdf"></i> Upload & Ekstrak File (PDF / DOCX)
+                        </button>
+                        <button class="doc-tab-btn" id="btn-subtab-batch" onclick="App.switchDocSubTab('batch')">
+                            <i class="fa-solid fa-layer-group"></i> Batch Import Banyak Dokumen
+                        </button>
+                        <button class="doc-tab-btn" id="btn-subtab-manual" onclick="App.switchDocSubTab('manual')">
+                            <i class="fa-solid fa-pen-to-square"></i> Input Form Manual
+                        </button>
+                    </div>
+
+                    <!-- VIEW 1: SINGLE FILE UPLOAD & PREVIEW -->
+                    <div id="view-doc-single" class="doc-subview active">
+                        <!-- Dropzone Area -->
+                        <div class="app-card" style="max-width: 900px; margin-bottom: 20px;">
+                            <div class="app-card-body">
+                                <div class="dropzone-box" id="doc-dropzone" onclick="document.getElementById('doc-file-input').click()">
+                                    <input type="file" id="doc-file-input" accept=".pdf,.docx,.doc,.txt,.md" style="display: none;" onchange="App.handleFileSelect(event)">
+                                    <div class="dropzone-icon">
+                                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                                    </div>
+                                    <div class="dropzone-title">Tarik & Lepas File Dokumen ke Sini, atau Klik untuk Memilih</div>
+                                    <div class="dropzone-sub">Sistem akan otomatis mengekstrak teks, kategori, judul, poin klinis, dan tanda bahaya</div>
+                                    <div class="dropzone-formats">
+                                        <span class="format-badge pdf"><i class="fa-solid fa-file-pdf"></i> PDF (.pdf)</span>
+                                        <span class="format-badge docx"><i class="fa-solid fa-file-word"></i> Word (.docx, .doc)</span>
+                                        <span class="format-badge"><i class="fa-solid fa-file-lines"></i> Teks (.txt, .md)</span>
+                                        <span class="format-badge"><i class="fa-solid fa-shield-check"></i> Maks. 25 MB</span>
+                                    </div>
+                                </div>
+
+                                <!-- Loading Indicator -->
+                                <div id="doc-extract-loading" style="display: none; text-align: center; padding: 24px;">
+                                    <i class="fa-solid fa-spinner fa-spin" style="font-size: 28px; color: var(--primary);"></i>
+                                    <p style="margin-top: 10px; font-weight: 600; color: var(--text-main);">Mengekstrak teks & menganalisis struktur medis dokumen...</p>
+                                </div>
+
+                                <!-- File Preview Card -->
+                                <div id="doc-file-preview-card" class="file-preview-card" style="display: none; margin-top: 20px;">
+                                    <div class="file-info-group">
+                                        <div class="file-type-avatar" id="doc-preview-avatar">
+                                            <i class="fa-solid fa-file-pdf"></i>
+                                        </div>
+                                        <div>
+                                            <div class="file-meta-name" id="doc-preview-filename">Pedoman_Klinis.pdf</div>
+                                            <div class="file-meta-sub">
+                                                <span id="doc-preview-filesize">0 KB</span> &bull;
+                                                <span id="doc-preview-format">PDF</span> &bull;
+                                                <span style="color: var(--success);"><i class="fa-solid fa-circle-check"></i> Teks Berhasil Diekstrak</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button class="btn btn-sm btn-outline-danger" onclick="App.clearSelectedDocument()">
+                                        <i class="fa-solid fa-xmark"></i> Ganti File
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Form Review & Edit -->
+                        <div class="app-card" style="max-width: 900px;">
+                            <div class="app-card-header">
+                                <div class="app-card-title">
+                                    <i class="fa-solid fa-sliders"></i> Konfirmasi & Review Data Pengetahuan
+                                </div>
+                                <span class="badge badge-info" id="doc-form-mode-badge">Siap Divalidasi</span>
+                            </div>
+                            <div class="app-card-body">
+                                <form id="form-import-document" onsubmit="App.handleDocumentImportSubmit(event)">
+                                    <input type="hidden" id="import-doc-raw-text">
+                                    <input type="hidden" id="import-doc-original-filename">
+
+                                    <!-- Destination Selection Radio Cards -->
+                                    <label class="form-label" style="font-weight: 700; margin-bottom: 8px;">Pilih Tujuan Penyimpanan <span class="req">*</span></label>
+                                    <div class="destination-radio-grid">
+                                        <label class="destination-card selected" id="card-dest-active" onclick="App.selectDestination('ACTIVE')">
+                                            <input type="radio" name="target_destination" value="ACTIVE" checked>
+                                            <div>
+                                                <div class="destination-card-title">
+                                                    <i class="fa-solid fa-circle-check" style="color: var(--success);"></i> Simpan ke Knowledge Base Tervalidasi (ACTIVE)
+                                                </div>
+                                                <div class="destination-card-desc">
+                                                    Gunakan untuk file eksternal yang sudah divalidasi (Pedoman Resmi/SOP). Chatbot Telegram langsung dapat menggunakannya.
+                                                </div>
+                                            </div>
+                                        </label>
+
+                                        <label class="destination-card" id="card-dest-pending" onclick="App.selectDestination('PENDING')">
+                                            <input type="radio" name="target_destination" value="PENDING">
+                                            <div>
+                                                <div class="destination-card-title">
+                                                    <i class="fa-solid fa-clock" style="color: var(--warning);"></i> Simpan ke Antrian Candidates (PENDING)
+                                                </div>
+                                                <div class="destination-card-desc">
+                                                    Masukkan ke antrian validator agar dapat ditinjau ulang oleh tim dokter/admin sebelum aktif.
+                                                </div>
+                                            </div>
+                                        </label>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="form-label">Judul Dokumen / Panduan Medis <span class="req">*</span></label>
+                                        <input type="text" class="form-control" id="doc-title" required placeholder="Contoh: Tata Laksana Terkini Dispepsia Fungsional pada Layanan Primer">
+                                    </div>
+
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                                        <div class="form-group">
+                                            <label class="form-label">Kategori Medis <span class="req">*</span></label>
+                                            <select class="form-control" id="doc-category" required></select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">Penerbit / Asosiasi / Sumber <span class="req">*</span></label>
+                                            <input type="text" class="form-control" id="doc-publisher" required placeholder="Contoh: Indonesian Medical Journal / PAPDI / Kemenkes">
+                                        </div>
+                                    </div>
+
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                                        <div class="form-group">
+                                            <label class="form-label">Tahun Terbit / Edisi</label>
+                                            <input type="number" class="form-control" id="doc-year" value="2024" min="1990" max="2030">
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">Tautan Referensi / DOI / Dokumen URL</label>
+                                            <input type="url" class="form-control" id="doc-url" placeholder="https://kemkes.go.id/guideline-article">
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="form-label">Kata Kunci Pencarian (Keywords) <span class="req">*</span></label>
+                                        <input type="text" class="form-control" id="doc-keywords" required placeholder="dispepsia, lambung, sakit maag, asam lambung, pencegahan">
+                                        <div class="form-hint">Kata kunci digunakan algoritma pencarian bot untuk mencocokkan pertanyaan pengguna.</div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="form-label">Topik Sasaran / Contoh Pertanyaan</label>
+                                        <input type="text" class="form-control" id="doc-target-question" placeholder="Contoh: Bagaimana mengatasi keluhan maag dan dispepsia?">
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="form-label">Ringkasan / Jawaban Klinis Utama <span class="req">*</span></label>
+                                        <textarea class="form-control" id="doc-proposed-answer" required rows="4" placeholder="Jelaskan intisari klinis yang dapat dipahami masyarakat awam..."></textarea>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="form-label">Poin-Poin Penting Penanganan (Pisahkan per baris)</label>
+                                        <textarea class="form-control" id="doc-important-points" rows="4" placeholder="Poin 1: Makan dalam porsi kecil tapi sering&#10;Poin 2: Hindari makanan berlemak tinggi, pedas, dan asam&#10;Poin 3: Hindari langsung berbaring setelah makan"></textarea>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="form-label">Kapan Perlu ke Dokter / Peringatan Bahaya <span class="req">*</span></label>
+                                        <textarea class="form-control" id="doc-when-doctor" required rows="2" placeholder="Segera ke dokter apabila muntah darah, BAB berwarna hitam pekat, atau berat badan turun drastis..."></textarea>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="form-label">Nama Validator / Administrator</label>
+                                        <input type="text" class="form-control" id="doc-validator-name" value="Administrator Medis">
+                                    </div>
+
+                                    <!-- Collapsible Accordion: Raw Extracted Text -->
+                                    <div class="raw-text-accordion" id="doc-raw-accordion">
+                                        <div class="raw-text-header" onclick="App.toggleRawTextAccordion()">
+                                            <span><i class="fa-solid fa-file-lines"></i> Lihat Teks Asli Hasil Ekstraksi Dokumen</span>
+                                            <i class="fa-solid fa-chevron-down" id="raw-text-chevron"></i>
+                                        </div>
+                                        <div class="raw-text-body" id="doc-raw-text-body">
+                                            (Belum ada file yang diekstrak)
+                                        </div>
+                                    </div>
+
+                                    <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px;">
+                                        <button type="button" class="btn btn-secondary" onclick="App.clearSelectedDocument()">Reset Form</button>
+                                        <button type="submit" class="btn btn-primary" id="btn-submit-doc-import">
+                                            <i class="fa-solid fa-circle-check"></i> Simpan ke Knowledge Base Tervalidasi
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- VIEW 2: BATCH IMPORT -->
+                    <div id="view-doc-batch" class="doc-subview" style="display: none;">
+                        <div class="app-card" style="max-width: 900px;">
+                            <div class="app-card-header">
+                                <div class="app-card-title">
+                                    <i class="fa-solid fa-layer-group"></i> Batch Import Banyak File Sekaligus
+                                </div>
+                            </div>
+                            <div class="app-card-body">
+                                <div class="dropzone-box" id="batch-dropzone" onclick="document.getElementById('batch-file-input').click()">
+                                    <input type="file" id="batch-file-input" multiple accept=".pdf,.docx,.doc,.txt,.md" style="display: none;" onchange="App.handleBatchFilesSelect(event)">
+                                    <div class="dropzone-icon">
+                                        <i class="fa-solid fa-folder-open"></i>
+                                    </div>
+                                    <div class="dropzone-title">Pilih Beberapa File PDF atau DOCX Sekaligus</div>
+                                    <div class="dropzone-sub">Sistem akan memproses dan mengimpor setiap dokumen secara otomatis ke database</div>
+                                    <div class="dropzone-formats">
+                                        <span class="format-badge pdf"><i class="fa-solid fa-file-pdf"></i> PDF</span>
+                                        <span class="format-badge docx"><i class="fa-solid fa-file-word"></i> DOCX</span>
+                                        <span class="format-badge"><i class="fa-solid fa-files"></i> Maks 10 file per batch</span>
+                                    </div>
+                                </div>
+
+                                <div id="batch-selected-files-container" style="display: none; margin-top: 20px;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                                        <h4 style="font-size: 14px; font-weight: 700;">Daftar File yang Dipilih:</h4>
+                                        <button class="btn btn-sm btn-outline-danger" onclick="App.clearBatchFiles()">Hapus Semua</button>
+                                    </div>
+
+                                    <div class="batch-upload-list" id="batch-files-list"></div>
+
+                                    <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px;">
+                                        <button class="btn btn-primary" id="btn-run-batch-import" onclick="App.runBatchImport()">
+                                            <i class="fa-solid fa-bolt"></i> Mulai Batch Import ke Knowledge Base
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- VIEW 3: MANUAL INPUT FORM -->
+                    <div id="view-doc-manual" class="doc-subview" style="display: none;">
+                        <div class="app-card" style="max-width: 860px;">
+                            <div class="app-card-header">
+                                <div class="app-card-title">
+                                    <i class="fa-solid fa-pen-to-square"></i> Input Jurnal / Literatur Manual
+                                </div>
+                            </div>
+                            <div class="app-card-body">
+                                <form id="form-add-journal" onsubmit="App.handleJournalSubmit(event)">
+                                    <div class="form-group">
+                                        <label class="form-label">Judul Publikasi / Jurnal <span class="req">*</span></label>
+                                        <input type="text" class="form-control" id="journal-title" required placeholder="Contoh: Panduan Klinis Penanganan Demam Tifoid">
+                                    </div>
+
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                                        <div class="form-group">
+                                            <label class="form-label">Kategori Medis <span class="req">*</span></label>
+                                            <select class="form-control" id="journal-category" required></select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">Penerbit / Asosiasi <span class="req">*</span></label>
+                                            <input type="text" class="form-control" id="journal-publisher" required placeholder="Contoh: IDI / PAPDI / Kemenkes">
+                                        </div>
+                                    </div>
+
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                                        <div class="form-group">
+                                            <label class="form-label">Tahun Publikasi</label>
+                                            <input type="number" class="form-control" id="journal-year" value="2024" min="1990" max="2030">
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">Tautan Referensi / DOI</label>
+                                            <input type="url" class="form-control" id="journal-url" placeholder="https://journal.example.com/article/123">
+                                        </div>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="form-label">Pertanyaan / Topik Sasaran</label>
+                                        <input type="text" class="form-control" id="journal-target-question" placeholder="Contoh: Apa penanganan pertama demam tifoid?">
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="form-label">Rangkuman / Jawaban Klinis Utama <span class="req">*</span></label>
+                                        <textarea class="form-control" id="journal-proposed-answer" required rows="4" placeholder="Jelaskan intisari klinis yang dapat dipahami masyarakat awam..."></textarea>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="form-label">Poin-Poin Penting (Pisahkan dengan baris baru)</label>
+                                        <textarea class="form-control" id="journal-important-points" rows="3" placeholder="Poin 1: Bed rest total sampai demam turun&#10;Poin 2: Diet makanan lunak rendah serat&#10;Poin 3: Jaga kebersihan sanitasi"></textarea>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label class="form-label">Kapan Perlu ke Dokter / Tanda Bahaya</label>
+                                        <textarea class="form-control" id="journal-when-doctor" rows="2" placeholder="Segera ke IGD jika timbul delirium, nyeri perut hebat, atau muntah terus menerus..."></textarea>
+                                    </div>
+
+                                    <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px;">
+                                        <button type="reset" class="btn btn-secondary">Reset Form</button>
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fa-solid fa-paper-plane"></i> Kirim ke Antrian Validasi
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- TAB 7: VALIDATION LOGS -->
+                <section class="page-tab-content" id="tab-validation-logs">
+                    <div class="page-header">
+                        <div class="page-header-text">
+                            <h2>Validation Logs & Audit Trail</h2>
+                            <p>Catatan kronologis seluruh persetujuan, penolakan, dan pembaruan Knowledge Base oleh Administrator.</p>
+                        </div>
+                    </div>
+
+                    <div class="app-card">
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 60px;">ID</th>
+                                        <th>Aksi</th>
+                                        <th>Validator</th>
+                                        <th>Ref Candidate / KB</th>
+                                        <th>Status Perubahan</th>
+                                        <th>Catatan Validasi</th>
+                                        <th>Waktu</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="validation-logs-table-body">
+                                    <tr><td colspan="7" style="text-align: center; padding: 30px;">Memuat audit logs...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- TAB 8: CATEGORIES & SOURCES -->
+                <section class="page-tab-content" id="tab-categories-sources">
+                    <div class="page-header">
+                        <div class="page-header-text">
+                            <h2>Kategori Medis & Sumber Terpercaya</h2>
+                            <p>Kelola taksonomi medis dan daftar penerbit literatur ilmiah / dokter terdaftar.</p>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 24px;">
+                        <!-- Categories Card -->
+                        <div class="app-card">
+                            <div class="app-card-header">
+                                <div class="app-card-title">
+                                    <i class="fa-solid fa-tags"></i> Kategori Kesehatan
+                                </div>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Nama Kategori</th>
+                                            <th>Slug</th>
+                                            <th>Deskripsi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="categories-table-body">
+                                        <tr><td colspan="3" style="text-align: center; padding: 20px;">Memuat kategori...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Sources Card -->
+                        <div class="app-card">
+                            <div class="app-card-header">
+                                <div class="app-card-title">
+                                    <i class="fa-solid fa-building-columns"></i> Sumber Terverifikasi
+                                </div>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Nama Sumber</th>
+                                            <th>Tipe</th>
+                                            <th>Penerbit / Tahun</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="sources-table-body">
+                                        <tr><td colspan="3" style="text-align: center; padding: 20px;">Memuat sumber...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- TAB 9: SETTINGS & TELEGRAM INTEGRATION -->
+                <section class="page-tab-content" id="tab-settings">
+                    <div class="page-header">
+                        <div class="page-header-text">
+                            <h2>Pengaturan Sistem & Integrasi Bot Telegram</h2>
+                            <p>Status integrasi real-time Bot Telegram, diagnosa database, dan konfigurasi API server.</p>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 24px;">
+                        <!-- Telegram Bot Card -->
+                        <div class="app-card">
+                            <div class="app-card-header">
+                                <div class="app-card-title">
+                                    <i class="fa-brands fa-telegram" style="color: #0088cc;"></i> Integrasi Bot Telegram Resmi
+                                </div>
+                                <span class="badge badge-success"><i class="fa-solid fa-check"></i> AKTIF</span>
+                            </div>
+                            <div class="app-card-body">
+                                <div style="background-color: #f0f9ff; border-left: 4px solid #0088cc; padding: 14px 16px; border-radius: var(--radius-md); margin-bottom: 16px;">
+                                    <div style="font-weight: 700; color: #0369a1; font-size: 14px; margin-bottom: 4px;">
+                                        🤖 Bot Telegram Terintegrasi Langsung
+                                    </div>
+                                    <p style="font-size: 13px; color: #0c4a6e; line-height: 1.5;">
+                                        Pengguna berinteraksi langsung melalui aplikasi Telegram. Semua pertanyaan otomatis dicocokkan dengan Knowledge Base aktif atau diteruskan ke antrian dokter jika belum ada data.
+                                    </p>
+                                </div>
+
+                                <div style="font-size: 13.5px; line-height: 2;">
+                                    <div><strong>Status Polling:</strong> <span class="badge badge-success">ACTIVE (Polling interval: 300ms)</span></div>
+                                    <div><strong>Webhook Cleaner:</strong> <span class="badge badge-info">Auto-Cleaned</span></div>
+                                    <div><strong>Perintah Tersedia:</strong> <code>/start</code>, <code>/help</code>, dan pesan teks bebas</div>
+                                    <div><strong>Fallback Pipeline:</strong> Otomatis diteruskan ke antrian dokter saat skor relevansi &lt; 58%</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- System Diagnostics Card -->
+                        <div class="app-card">
+                            <div class="app-card-header">
+                                <div class="app-card-title">
+                                    <i class="fa-solid fa-server"></i> Status Sistem & Database
+                                </div>
+                            </div>
+                            <div class="app-card-body" id="system-diagnostic-info">
+                                <p>Memuat status diagnostik...</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <!-- MODALS -->
+    <!-- Modal: Add / Edit Knowledge -->
+    <div class="modal-overlay" id="modal-knowledge">
+        <div class="modal-card modal-lg">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modal-knowledge-title">Tambah Knowledge Base</h3>
+                <button class="modal-close" onclick="App.closeModal('modal-knowledge')">&times;</button>
+            </div>
+            <form id="form-knowledge" onsubmit="App.handleKnowledgeSubmit(event)">
+                <input type="hidden" id="kb-form-id">
+                <div class="modal-body">
+                    <!-- Quick Document Extractor (PDF / DOCX) -->
+                    <div class="modal-quick-upload-card" id="modal-kb-dropzone" onclick="document.getElementById('modal-kb-file-input').click()">
+                        <input type="file" id="modal-kb-file-input" accept=".pdf,.docx,.doc,.txt,.md" style="display: none;" onchange="App.handleModalFileSelect(event)">
+                        <div class="modal-quick-upload-content">
+                            <div class="modal-upload-icon"><i class="fa-solid fa-file-arrow-up"></i></div>
+                            <div style="flex: 1;">
+                                <div style="font-weight: 700; font-size: 13.5px; color: var(--text-main);">Unggah Dokumen untuk Auto-Isi (PDF / DOCX)</div>
+                                <div style="font-size: 11.5px; color: var(--text-muted);">Sistem akan mengekstrak judul, kategori, dan jawaban klinis secara otomatis (Opsional)</div>
+                            </div>
+                            <div class="modal-upload-badges">
+                                <span class="format-badge pdf"><i class="fa-solid fa-file-pdf"></i> PDF</span>
+                                <span class="format-badge docx"><i class="fa-solid fa-file-word"></i> DOCX</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="modal-kb-loading" style="display: none; text-align: center; padding: 12px; background: #f0fdfa; border-radius: var(--radius-md); margin-bottom: 16px; color: var(--primary-dark); font-size: 13px; font-weight: 600;">
+                        <i class="fa-solid fa-spinner fa-spin"></i> Mengekstrak teks dari dokumen...
+                    </div>
+
+                    <div id="modal-kb-extracted-success" style="display: none; padding: 10px 14px; background: #d1fae5; border-radius: var(--radius-md); margin-bottom: 16px; color: #065f46; font-size: 12.5px; font-weight: 600; display: flex; justify-content: space-between; align-items: center;">
+                        <span><i class="fa-solid fa-circle-check"></i> Data berhasil diekstrak dari: <strong id="modal-kb-extracted-name">file.pdf</strong></span>
+                        <button type="button" class="btn btn-xs btn-outline-danger" onclick="App.clearModalExtractedFile()" style="padding: 2px 8px; font-size: 11px;">Reset File</button>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Judul Knowledge <span class="req">*</span></label>
+                        <input type="text" class="form-control" id="kb-form-title" required placeholder="Contoh: Penanganan Gejala Flu Awal pada Dewasa">
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div class="form-group">
+                            <label class="form-label">Kategori <span class="req">*</span></label>
+                            <select class="form-control" id="kb-form-category" required></select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Sumber Referensi <span class="req">*</span></label>
+                            <select class="form-control" id="kb-form-source" required></select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Kata Kunci / Topik (Keywords) <span class="req">*</span></label>
+                        <input type="text" class="form-control" id="kb-form-keywords" required placeholder="flu, pilek, influenza, batuk, demam ringan, hidung tersumbat">
+                        <div class="form-hint">Kata kunci dipisahkan dengan koma, digunakan untuk pencarian cerdas oleh bot.</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Jawaban Singkat (Ringkasan) <span class="req">*</span></label>
+                        <textarea class="form-control" id="kb-form-short-answer" required rows="3" placeholder="Penjelasan utama yang ramah dan mudah dipahami masyarakat umum..."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Hal Penting (Poin-poin Penanganan)</label>
+                        <textarea class="form-control" id="kb-form-important-points" rows="3" placeholder="Poin 1: Istirahat cukup 7-9 jam&#10;Poin 2: Minum air putih hangat minimal 2 liter&#10;Poin 3: Konsumsi vitamin C"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Kapan Perlu ke Dokter / Peringatan Bahaya <span class="req">*</span></label>
+                        <textarea class="form-control" id="kb-form-when-doctor" required rows="2" placeholder="Segera ke dokter apabila demam > 38.5C lebih dari 3 hari atau timbul sesak napas berat..."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Validator Name</label>
+                        <input type="text" class="form-control" id="kb-form-validator" value="Administrator Medis">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="App.closeModal('modal-knowledge')">Batal</button>
+                    <button type="submit" class="btn btn-primary">Simpan Knowledge</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: View Knowledge Detail -->
+    <div class="modal-overlay" id="modal-view-knowledge">
+        <div class="modal-card modal-lg">
+            <div class="modal-header">
+                <h3 class="modal-title">Detail Knowledge Base</h3>
+                <button class="modal-close" onclick="App.closeModal('modal-view-knowledge')">&times;</button>
+            </div>
+            <div class="modal-body" id="modal-view-knowledge-content">
+                Memuat detail...
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="App.closeModal('modal-view-knowledge')">Tutup</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Doctor Answer Question -->
+    <div class="modal-overlay" id="modal-doctor-answer">
+        <div class="modal-card modal-lg">
+            <div class="modal-header">
+                <h3 class="modal-title">Form Jawaban Dokter</h3>
+                <button class="modal-close" onclick="App.closeModal('modal-doctor-answer')">&times;</button>
+            </div>
+            <form id="form-doctor-answer" onsubmit="App.handleDoctorAnswerSubmit(event)">
+                <input type="hidden" id="doc-ans-question-id">
+                <div class="modal-body">
+                    <div style="background-color: #f8fafc; border-left: 4px solid var(--danger); padding: 14px 18px; border-radius: var(--radius-md); margin-bottom: 20px;">
+                        <strong style="font-size: 12px; color: var(--text-muted); text-transform: uppercase;">Pertanyaan Pengguna:</strong>
+                        <div id="doc-ans-question-text" style="font-size: 15px; font-weight: 600; color: var(--text-main); margin-top: 4px;"></div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div class="form-group">
+                            <label class="form-label">Nama Dokter Penjawab <span class="req">*</span></label>
+                            <input type="text" class="form-control" id="doc-ans-doctor-name" required value="Dr. Siti Rahmawati, Sp.PD">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Kategori Diagnosa <span class="req">*</span></label>
+                            <select class="form-control" id="doc-ans-category" required></select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Jawaban & Penjelasan Klinis Dokter <span class="req">*</span></label>
+                        <textarea class="form-control" id="doc-ans-response" required rows="5" placeholder="Berikan penjelasan medis komprehensif yang mudah dipahami pasien..."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Saran / Anjuran Medis Khusus</label>
+                        <textarea class="form-control" id="doc-ans-advice" rows="3" placeholder="Contoh: Istirahat cukup, batasi aktivitas fisik berat, dan pantau frekuensi denyut nadi..."></textarea>
+                    </div>
+
+                    <div style="background-color: var(--primary-light); padding: 12px 16px; border-radius: var(--radius-md); font-size: 12.5px; color: var(--primary-dark);">
+                        <i class="fa-solid fa-info-circle"></i> Jawaban dokter akan langsung dikirimkan ke Telegram pengguna dan otomatis terdaftar sebagai <strong>Knowledge Candidate (PENDING)</strong> untuk divalidasi administrator.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="App.closeModal('modal-doctor-answer')">Batal</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa-solid fa-paper-plane"></i> Kirim Jawaban ke Pengguna
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Reject Candidate with Reason -->
+    <div class="modal-overlay" id="modal-reject-candidate">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 class="modal-title" style="color: var(--danger);">Tolak Kandidat Knowledge</h3>
+                <button class="modal-close" onclick="App.closeModal('modal-reject-candidate')">&times;</button>
+            </div>
+            <form id="form-reject-candidate" onsubmit="App.handleCandidateRejectSubmit(event)">
+                <input type="hidden" id="reject-candidate-id">
+                <div class="modal-body">
+                    <p style="font-size: 13.5px; color: var(--text-muted); margin-bottom: 16px;">
+                        Kandidat yang ditolak <strong>tidak akan digunakan</strong> oleh chatbot TeleHealth. Harap cantumkan alasan penolakan secara jelas untuk catatan audit.
+                    </p>
+                    <div class="form-group">
+                        <label class="form-label">Alasan Penolakan <span class="req">*</span></label>
+                        <textarea class="form-control" id="reject-candidate-reason" required rows="4" placeholder="Contoh: Informasi tidak cukup relevan untuk dijadikan pedoman umum / Dosis obat perlu konfirmasi lebih lanjut..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="App.closeModal('modal-reject-candidate')">Batal</button>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fa-solid fa-ban"></i> Konfirmasi Penolakan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Notifications Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>

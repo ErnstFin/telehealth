@@ -1,0 +1,106 @@
+{
+  "name": "TeleHealth - Doctor Response & Candidate Ingestion Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "telehealth-doctor-answer",
+        "options": {}
+      },
+      "id": "node-webhook-doctor-response",
+      "name": "Webhook Doctor Response Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        200,
+        300
+      ],
+      "webhookId": "telehealth-doctor-answer"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.body.telegramChatId }}",
+        "text": "={{ $json.body.userMessage }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "node-send-doctor-answer-tg",
+      "name": "Send Doctor Answer to User Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        450,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:3000/api/candidates",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"title\": \"{{ $json.body.candidate.title }}\",\n  \"type\": \"DOCTOR_RESPONSE\",\n  \"question_text\": \"{{ $json.body.candidate.question_text }}\",\n  \"proposed_answer\": \"{{ $json.body.candidate.proposed_answer }}\",\n  \"doctor_name\": \"{{ $json.body.candidate.doctor_name }}\",\n  \"category_id\": {{ $json.body.candidate.category_id }},\n  \"status\": \"PENDING\"\n}",
+        "options": {}
+      },
+      "id": "node-create-candidate-api",
+      "name": "Ensure Candidate Registered in System",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        450,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "=@telehealth_admin_alert_channel",
+        "text": "=📋 **Notifikasi Admin: Kandidat Knowledge Baru Menunggu Validasi!**\n\n📌 **Judul:** {{ $('Webhook Doctor Response Trigger').item.json.body.candidate.title }}\n👨‍⚕️ **Sumber:** {{ $('Webhook Doctor Response Trigger').item.json.body.candidate.doctor_name }}\n\nSilakan buka Web Administrator untuk memvalidasi atau menolak kandidat ini agar dapat digunakan oleh chatbot.",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "node-notify-admin-candidate",
+      "name": "Notify Admin Validation Channel",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        700,
+        400
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook Doctor Response Trigger": {
+      "main": [
+        [
+          {
+            "node": "Send Doctor Answer to User Telegram",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Ensure Candidate Registered in System",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ensure Candidate Registered in System": {
+      "main": [
+        [
+          {
+            "node": "Notify Admin Validation Channel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
