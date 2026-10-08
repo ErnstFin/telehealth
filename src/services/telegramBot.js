@@ -139,28 +139,18 @@ class TelegramBotService {
     registerHandlers() {
         if (!this.bot) return;
 
-        this.bot.on('polling_error', async (err) => {
+        this.bot.on('polling_error', (err) => {
             const msg = err.message || '';
-            console.warn('[Telegram Polling Warning]:', msg);
             if (msg.includes('409') || msg.includes('Conflict')) {
-                console.warn('[Telegram Bot Notice] Polling conflict detected (another instance or session is running). Auto-reconnecting in 5 seconds...');
-                try {
-                    await this.bot.stopPolling();
-                    setTimeout(async () => {
-                        if (this.bot && this.isEnabled) {
-                            try {
-                                await this.bot.startPolling({ restart: true });
-                                console.log('[Telegram Bot] Resumed polling successfully.');
-                            } catch (e) {}
-                        }
-                    }, 5000);
-                } catch (e) {}
+                console.warn('[Telegram Polling Warning] 409 Conflict: Sesi polling ganda terdeteksi. Pastikan hanya 1 server instance (misal Railway atau Local) yang aktif dengan token ini.');
+            } else {
+                console.warn('[Telegram Polling Warning]:', msg);
             }
         });
 
         // 1. /start and /menu commands
         this.bot.onText(/\/(start|menu)/, async (msg) => {
-            await this.sendWelcomeMenu(msg.chat.id, msg.from.first_name);
+            await this.sendWelcomeMenu(msg.chat.id, msg.from && msg.from.first_name);
         });
 
         // 2. /help command
@@ -170,7 +160,7 @@ class TelegramBotService {
 
         // 3. /status command
         this.bot.onText(/\/status/, async (msg) => {
-            await this.sendStatusMessage(msg.chat.id, msg.from.id);
+            await this.sendStatusMessage(msg.chat.id, msg.from && msg.from.id);
         });
 
         // 4. /gejala command
@@ -203,9 +193,7 @@ class TelegramBotService {
                 else if (data.startsWith('query_topic:')) ackText = '🔍 Mencari info medis...';
                 else if (data.startsWith('forward_doctor:')) ackText = '👨‍⚕️ Meneruskan ke dokter...';
                 await this.bot.answerCallbackQuery(query.id, { text: ackText, show_alert: false });
-            } catch (e) {
-                // Ignore answer error
-            }
+            } catch (e) {}
 
             if (!chatId) return;
             console.log(`[Telegram Bot] 🔘 Button Clicked: "${data}" by @${(query.from && query.from.username) || (query.from && query.from.first_name) || chatId}`);
@@ -243,10 +231,12 @@ class TelegramBotService {
             if (!msg.text) return;
 
             const text = msg.text.trim();
+            const fromUser = msg.from || {};
+            const firstName = fromUser.first_name || 'Pengguna';
 
             // Check reply keyboard commands
             if (text === '🏠 Menu Utama') {
-                return this.sendWelcomeMenu(msg.chat.id, msg.from.first_name);
+                return this.sendWelcomeMenu(msg.chat.id, firstName);
             }
             if (text === '🩺 Cek Gejala & Topik') {
                 return this.sendGejalaMenu(msg.chat.id);
@@ -255,16 +245,23 @@ class TelegramBotService {
                 return this.sendDoctorPrompt(msg.chat.id);
             }
             if (text === '📋 Status Konsultasi') {
-                return this.sendStatusMessage(msg.chat.id, msg.from.id);
+                return this.sendStatusMessage(msg.chat.id, fromUser.id);
             }
             if (text === 'ℹ️ Panduan & Bantuan') {
                 return this.sendHelpMessage(msg.chat.id);
             }
 
+            // Check common greetings or test queries
+            const cleanCheck = text.toLowerCase().replace(/[\.\,\!\?]/g, '').trim();
+            const greetingRegex = /^(tes|test|halo|hai|hi|hello|p|ping|salam|assalamu'?alaikum|assalamualaikum|start|menu|info|help|bantuan)$/i;
+            if (greetingRegex.test(cleanCheck)) {
+                return this.sendWelcomeMenu(msg.chat.id, firstName);
+            }
+
             // Normal health query
             if (!text.startsWith('/')) {
-                console.log(`[Telegram Bot] 📩 Pesan masuk dari @${msg.from.username || msg.from.first_name}: "${text}"`);
-                await this.processUserQuestion(msg.chat.id, msg.from.id, msg.from, text, msg.message_id);
+                console.log(`[Telegram Bot] 📩 Pesan masuk dari @${fromUser.username || firstName}: "${text}"`);
+                await this.processUserQuestion(msg.chat.id, fromUser.id, fromUser, text, msg.message_id);
             }
         });
     }
