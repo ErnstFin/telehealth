@@ -80,12 +80,12 @@ class KnowledgeRetriever {
      * @param {number} minThreshold - Minimum confidence score (default 0.58)
      * @returns {object} { found: boolean, score: number, knowledge: object | null, source: object | null, category: object | null }
      */
-    static async search(userQuestion, minThreshold = 0.58) {
+    static async search(userQuestion, minThreshold = 0.58, sessionLang = null) {
         if (!userQuestion || typeof userQuestion !== 'string' || userQuestion.trim().length === 0) {
-            return { found: false, score: 0, knowledge: null, lang: 'id' };
+            return { found: false, score: 0, knowledge: null, lang: sessionLang || 'id' };
         }
 
-        const lang = LanguageService.detectLanguage(userQuestion);
+        const lang = sessionLang || LanguageService.detectLanguage(userQuestion);
         const bridgedQuestion = LanguageService.bridgeQueryToMedical(userQuestion, lang);
 
         // 1. Fetch only ACTIVE knowledge items

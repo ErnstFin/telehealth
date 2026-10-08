@@ -2,7 +2,7 @@
  * TeleHealth Multilingual Engine & Translation Service
  * Provides automatic language detection (Indonesian, English, Javanese, Sundanese),
  * medical concept cross-lingual synonym mapping, localized Telegram Bot menus/keyboards,
- * and clinical response formatting.
+ * and clinical response formatting with persistent session language preservation.
  */
 
 // Medical English-Indonesian Concept Dictionary
@@ -106,51 +106,63 @@ const REGIONAL_ID_MEDICAL_MAP = {
 
 class LanguageService {
     /**
-     * Detects the language of the incoming text (English, Indonesian, Javanese, Sundanese)
-     * @param {string} text - User question or greeting
+     * Detects language while strictly honoring the user's current session language
+     * unless the user explicitly switches language with recognizable terms.
+     * @param {string} text - User question, command, or greeting
+     * @param {string} currentLang - User's current preferred language ('en', 'id', 'jv', 'su')
      * @returns {string} 'en' | 'jv' | 'su' | 'id'
      */
-    static detectLanguage(text) {
-        if (!text || typeof text !== 'string') return 'id';
+    static detectLanguage(text, currentLang = 'id') {
+        if (!text || typeof text !== 'string') return currentLang || 'id';
         const clean = text.toLowerCase().replace(/[\.\,\!\?\#\$\%\&\*\(\)\_\+\=\[\]\{\}\<\>\/\\\|~`]/g, ' ').replace(/\s+/g, ' ').trim();
-        if (!clean) return 'id';
+        if (!clean) return currentLang || 'id';
 
-        // 1. Instant Exact Single-Word & Direct Greetings Matching
-        if (/^(hello|hi|hey|howdy|good\s+(morning|afternoon|evening|night|day)|greetings|help|doctor|status|start|menu|guide)$/i.test(clean)) {
+        // 1. Generic system slash commands -> Always maintain existing session language
+        if (/^(start|menu|help|gejala|dokter|status|bantuan)$/i.test(clean) && currentLang) {
+            return currentLang;
+        }
+
+        // 2. Explicit Greetings Matching
+        if (/^(hello|hi|hey|howdy|good\s+(morning|afternoon|evening|night|day)|greetings|thanks|thank\s+you)$/i.test(clean)) {
             return 'en';
         }
-        if (/^(sugeng\s+(enjang|siang|sonten|dalu|rawuh)|kula\s+nuwun|matur\s+nuwun|nyuwun\s+sewu|kula)$/i.test(clean)) {
+        if (/^(sugeng\s+(enjang|siang|sonten|dalu|rawuh)|kula\s+nuwun|matur\s+nuwun|nyuwun\s+sewu)$/i.test(clean)) {
             return 'jv';
         }
-        if (/^(sampurasun|wilujeng\s+(enjing|siang|sonten|wengi|sumping)|hatur\s+nuhun|punten|abdi)$/i.test(clean)) {
+        if (/^(sampurasun|wilujeng\s+(enjing|siang|sonten|wengi|sumping)|hatur\s+nuhun|punten)$/i.test(clean)) {
             return 'su';
         }
-        if (/^(halo|hai|tes|test|selamat\s+(pagi|siang|sore|malam|datang)|assalamu'?alaikum|assalamualaikum|p|ping|bantuan|mulai)$/i.test(clean)) {
+        if (/^(halo|hai|tes|test|selamat\s+(pagi|siang|sore|malam|datang)|assalamu'?alaikum|assalamualaikum|terima\s+kasih|makasih)$/i.test(clean)) {
             return 'id';
         }
 
-        // 2. English indicators
+        // 3. Count language tokens
         const englishWords = [
             'how', 'what', 'why', 'when', 'where', 'who', 'which', 'can', 'should',
-            'could', 'would', 'is', 'are', 'am', 'was', 'were', 'the', 'my', 'i', 'me', 'have', 'has', 'had', 'feel',
-            'feeling', 'pain', 'ache', 'fever', 'headache', 'stomach', 'cough',
-            'cold', 'doctor', 'treatment', 'treat', 'medicine', 'cure', 'symptoms',
-            'symptom', 'causes', 'cause', 'relief', 'relieve', 'remedy', 'help',
-            'please', 'tell', 'about', 'chest', 'throat', 'acid', 'reflux', 'blood',
-            'pressure', 'fatigue', 'dizzy', 'dizziness', 'illness', 'disease',
-            'to', 'for', 'with', 'from', 'in', 'on', 'at', 'it', 'this', 'that',
-            'you', 'your', 'we', 'they', 'do', 'does', 'did', 'make', 'get', 'give',
-            'write', 'script', 'code', 'database', 'query', 'hello', 'hi', 'hey', 'good',
-            'morning', 'evening', 'night', 'thank', 'thanks', 'need', 'want', 'like', 'take'
+            'could', 'would', 'is', 'are', 'am', 'was', 'were', 'the', 'my', 'i', 'me',
+            'have', 'has', 'had', 'feel', 'feeling', 'pain', 'ache', 'fever', 'headache',
+            'stomach', 'cough', 'cold', 'doctor', 'treatment', 'treat', 'medicine',
+            'cure', 'symptoms', 'symptom', 'causes', 'cause', 'relief', 'relieve',
+            'remedy', 'help', 'please', 'tell', 'about', 'chest', 'throat', 'acid',
+            'reflux', 'blood', 'pressure', 'fatigue', 'dizzy', 'dizziness', 'illness',
+            'disease', 'to', 'for', 'with', 'from', 'in', 'on', 'at', 'it', 'this',
+            'that', 'you', 'your', 'we', 'they', 'do', 'does', 'did', 'make', 'get',
+            'give', 'write', 'script', 'code', 'database', 'query', 'hello', 'hi', 'hey',
+            'good', 'morning', 'evening', 'night', 'thank', 'thanks', 'need', 'want',
+            'like', 'take', 'care', 'safe', 'usage', 'intake', 'swollen', 'gums', 'relief'
         ];
 
-        let enCount = 0;
-        for (const w of englishWords) {
-            const regex = new RegExp(`\\b${w}\\b`, 'i');
-            if (regex.test(clean)) enCount++;
-        }
+        const indonesianWords = [
+            'bagaimana', 'apa', 'mengapa', 'kenapa', 'kapan', 'dimana', 'siapa', 'bisa',
+            'harus', 'dapat', 'saya', 'aku', 'kami', 'kita', 'anda', 'kamu', 'punya',
+            'merasa', 'rasa', 'sakit', 'nyeri', 'perih', 'demam', 'pusing', 'kepala',
+            'perut', 'batuk', 'pilek', 'flu', 'dokter', 'penanganan', 'mengatasi',
+            'obat', 'minum', 'aturan', 'gejala', 'penyebab', 'meredakan', 'bantuan',
+            'tolong', 'jelaskan', 'tentang', 'dada', 'tenggorokan', 'lambung', 'asam',
+            'darah', 'tensi', 'lemas', 'mual', 'penyakit', 'ke', 'untuk', 'dengan',
+            'dari', 'di', 'pada', 'ini', 'itu', 'apakah', 'terima', 'kasih', 'halo', 'hai'
+        ];
 
-        // 3. Javanese indicators
         const javaneseWords = [
             'ngelu', 'mumet', 'mriang', 'awake', 'panas', 'watuk', 'weteng', 'loro',
             'kudu', 'ngombe', 'piye', 'carane', 'opo', 'iso', 'penak', 'mangan',
@@ -159,13 +171,6 @@ class LanguageService {
             'sampeyan', 'boyok', 'untu', 'garing', 'grok', 'sebah', 'ngorong', 'lemes'
         ];
 
-        let jvCount = 0;
-        for (const w of javaneseWords) {
-            const regex = new RegExp(`\\b${w}\\b`, 'i');
-            if (regex.test(clean)) jvCount++;
-        }
-
-        // 4. Sundanese indicators
         const sundaneseWords = [
             'lieur', 'haredang', 'tiris', 'padaharan', 'nyeuri', 'sirah', 'tikoro',
             'leuleus', 'kumaha', 'carana', 'naha', 'naon', 'kedah', 'ngaleueut',
@@ -173,27 +178,40 @@ class LanguageService {
             'wilujeng', 'mastaka', 'panon', 'beuteung', 'rieut', 'anjeun'
         ];
 
+        let enCount = 0;
+        let idCount = 0;
+        let jvCount = 0;
         let suCount = 0;
+
+        for (const w of englishWords) {
+            if (new RegExp(`\\b${w}\\b`, 'i').test(clean)) enCount++;
+        }
+        for (const w of indonesianWords) {
+            if (new RegExp(`\\b${w}\\b`, 'i').test(clean)) idCount++;
+        }
+        for (const w of javaneseWords) {
+            if (new RegExp(`\\b${w}\\b`, 'i').test(clean)) jvCount++;
+        }
         for (const w of sundaneseWords) {
-            const regex = new RegExp(`\\b${w}\\b`, 'i');
-            if (regex.test(clean)) suCount++;
+            if (new RegExp(`\\b${w}\\b`, 'i').test(clean)) suCount++;
         }
 
-        // Scoring resolution
-        if (enCount >= 1 && (enCount > jvCount && enCount > suCount)) {
-            // Check if strong English intent
-            if (enCount >= 2 || /\b(hello|hi|hey|headache|fever|cough|stomach|doctor|symptoms|pain|cold|how to|write|script|database|medicine|treatment|help|please)\b/i.test(clean)) {
-                return 'en';
-            }
+        // 4. Decision Resolution
+        if (enCount > 0 && enCount >= idCount && enCount >= jvCount && enCount >= suCount) {
+            return 'en';
         }
-        if (jvCount >= 1 && (jvCount > enCount && jvCount >= suCount)) {
+        if (jvCount > 0 && jvCount >= enCount && jvCount >= idCount && jvCount >= suCount) {
             return 'jv';
         }
-        if (suCount >= 1 && (suCount > enCount && suCount > jvCount)) {
+        if (suCount > 0 && suCount >= enCount && suCount >= idCount && suCount >= jvCount) {
             return 'su';
         }
+        if (idCount > 0 && idCount > enCount && idCount > jvCount && idCount > suCount) {
+            return 'id';
+        }
 
-        return 'id'; // Default Indonesian
+        // If no strong signal, stick with user's current session language!
+        return currentLang || 'id';
     }
 
     /**
@@ -384,16 +402,16 @@ class LanguageService {
                 gejalaInlineKeyboard: {
                     inline_keyboard: [
                         [
-                            { text: '🤒 Flu, Cough & Fever', callback_data: 'query_topic:penanganan flu batuk dan demam' },
-                            { text: '🤢 Gastritis & GERD', callback_data: 'query_topic:gejala sakit maag asam lambung gerd' }
+                            { text: '🤒 Flu & Common Cold', callback_data: 'query_topic:how to treat flu and common cold symptoms' },
+                            { text: '🤢 Gastritis & GERD', callback_data: 'query_topic:first aid for gastritis and acid reflux gerd' }
                         ],
                         [
-                            { text: '🤕 Headache & Migraine', callback_data: 'query_topic:mengatasi sakit kepala migrain' },
-                            { text: '🤧 Allergies & Respiratory', callback_data: 'query_topic:alergi debu dan ispa batuk' }
+                            { text: '🤕 Headache & Migraine', callback_data: 'query_topic:how to treat tension headache and migraine' },
+                            { text: '🩸 Anemia & Fatigue', callback_data: 'query_topic:symptoms and prevention of iron deficiency anemia' }
                         ],
                         [
-                            { text: '🩸 Hypertension & BP', callback_data: 'query_topic:hipertensi tekanan darah tinggi' },
-                            { text: '🦷 Toothache & Dental Pain', callback_data: 'query_topic:penanganan sakit gigi nyeri gusi' }
+                            { text: '🌡️ Fever & Body Heat', callback_data: 'query_topic:causes and first aid for fever in adults' },
+                            { text: '🦷 Toothache & Dental Pain', callback_data: 'query_topic:toothache and swollen gums relief' }
                         ],
                         [
                             { text: '🔙 Back to Main Menu', callback_data: 'menu_main' }
@@ -408,12 +426,12 @@ class LanguageService {
                 obatInlineKeyboard: {
                     inline_keyboard: [
                         [
-                            { text: '💊 Paracetamol (Fever / Pain)', callback_data: 'query_topic:aturan minum paracetamol demam' },
-                            { text: '💊 Antacid (Stomach Acid / GERD)', callback_data: 'query_topic:aturan minum antasida sakit maag' }
+                            { text: '💊 Paracetamol (Fever / Pain)', callback_data: 'query_topic:paracetamol dosage for fever and pain' },
+                            { text: '💊 Antacid (Stomach Acid / GERD)', callback_data: 'query_topic:antacid instructions for stomach acid' }
                         ],
                         [
-                            { text: '💊 Vitamin C & Immunity', callback_data: 'query_topic:konsumsi vitamin c harian' },
-                            { text: '💊 Safe Medication Guidelines', callback_data: 'query_topic:panduan minum obat yang benar' }
+                            { text: '💊 Vitamin C & Immunity', callback_data: 'query_topic:daily vitamin c and immune health' },
+                            { text: '💊 Safe Medication Guidelines', callback_data: 'query_topic:safe medication usage guidelines' }
                         ],
                         [
                             { text: '🔙 Back to Main Menu', callback_data: 'menu_main' }
@@ -520,8 +538,8 @@ class LanguageService {
                 actionButtonsNonHealth: {
                     inline_keyboard: [
                         [
-                            { text: '🤒 Example: Flu Care', callback_data: 'query_topic:penanganan flu batuk' },
-                            { text: '🤢 Example: Gastritis / GERD', callback_data: 'query_topic:gejala sakit maag' }
+                            { text: '🤒 Example: Flu Care', callback_data: 'query_topic:treatment for flu cough and fever' },
+                            { text: '🤢 Example: Gastritis / GERD', callback_data: 'query_topic:symptoms and care for gastritis and gerd' }
                         ],
                         [
                             { text: '🏠 Main Menu', callback_data: 'menu_main' }
@@ -575,12 +593,12 @@ class LanguageService {
                 gejalaInlineKeyboard: {
                     inline_keyboard: [
                         [
-                            { text: '🤒 Flu, Watuk & Demam', callback_data: 'query_topic:penanganan flu batuk dan demam' },
-                            { text: '🤢 Sakit Maag & Lambung', callback_data: 'query_topic:gejala sakit maag asam lambung gerd' }
+                            { text: '🤒 Flu, Watuk & Demam', callback_data: 'query_topic:pananganan flu watuk lan mriang' },
+                            { text: '🤢 Sakit Maag & Lambung', callback_data: 'query_topic:gejala sakit maag weteng perih' }
                         ],
                         [
-                            { text: '🤕 Sakit Sirah & Migrain', callback_data: 'query_topic:mengatasi sakit kepala migrain' },
-                            { text: '🤧 Alergi & ISPA', callback_data: 'query_topic:alergi debu dan ispa batuk' }
+                            { text: '🤕 Sakit Sirah & Migrain', callback_data: 'query_topic:ngatasi sirah ngelu migrain' },
+                            { text: '🤧 Alergi & ISPA', callback_data: 'query_topic:alergi lan ispa watuk' }
                         ],
                         [
                             { text: '🔙 Wangsul dhateng Menu Utama', callback_data: 'menu_main' }
@@ -595,8 +613,8 @@ class LanguageService {
                 obatInlineKeyboard: {
                     inline_keyboard: [
                         [
-                            { text: '💊 Paracetamol (Panas / Demam)', callback_data: 'query_topic:aturan minum paracetamol demam' },
-                            { text: '💊 Antasida (Obat Lambung)', callback_data: 'query_topic:aturan minum antasida sakit maag' }
+                            { text: '💊 Paracetamol (Panas / Demam)', callback_data: 'query_topic:aturan ngombe paracetamol demam' },
+                            { text: '💊 Antasida (Obat Lambung)', callback_data: 'query_topic:aturan ngombe antasida maag' }
                         ],
                         [
                             { text: '🔙 Wangsul dhateng Menu Utama', callback_data: 'menu_main' }

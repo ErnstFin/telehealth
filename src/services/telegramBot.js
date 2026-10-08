@@ -1,7 +1,7 @@
 /**
  * Telegram Bot & Chatbot Pipeline Service
  * Manages live Telegram bot connection with rich UI/UX (Inline & Reply Keyboards,
- * Status Tickets, Interactive Callbacks) with full Multilingual Support (English, Indonesian, Javanese, Sundanese).
+ * Status Tickets, Interactive Callbacks) with complete Multilingual Session State.
  */
 
 require('dotenv').config();
@@ -72,6 +72,15 @@ class TelegramBotService {
         const user = db.find('users', u => String(u.telegram_id) === String(telegramUserId || chatId))[0];
         if (user) {
             db.update('users', user.id, { preferred_lang: lang });
+        } else {
+            db.insert('users', {
+                telegram_id: String(telegramUserId || chatId),
+                username: 'user_' + chatId,
+                first_name: 'User',
+                last_name: '',
+                phone_number: null,
+                preferred_lang: lang
+            });
         }
     }
 
@@ -87,37 +96,7 @@ class TelegramBotService {
             }
         });
 
-        // 1. /start and /menu commands
-        this.bot.onText(/\/(start|menu)/, async (msg) => {
-            const lang = this.getUserLang(msg.from && msg.from.id, msg.chat.id);
-            await this.sendWelcomeMenu(msg.chat.id, msg.from && msg.from.first_name, null, lang);
-        });
-
-        // 2. /help command
-        this.bot.onText(/\/help/, async (msg) => {
-            const lang = this.getUserLang(msg.from && msg.from.id, msg.chat.id);
-            await this.sendHelpMessage(msg.chat.id, null, lang);
-        });
-
-        // 3. /status command
-        this.bot.onText(/\/status/, async (msg) => {
-            const lang = this.getUserLang(msg.from && msg.from.id, msg.chat.id);
-            await this.sendStatusMessage(msg.chat.id, msg.from && msg.from.id, null, lang);
-        });
-
-        // 4. /gejala command
-        this.bot.onText(/\/gejala/, async (msg) => {
-            const lang = this.getUserLang(msg.from && msg.from.id, msg.chat.id);
-            await this.sendGejalaMenu(msg.chat.id, null, lang);
-        });
-
-        // 5. /dokter command
-        this.bot.onText(/\/dokter/, async (msg) => {
-            const lang = this.getUserLang(msg.from && msg.from.id, msg.chat.id);
-            await this.sendDoctorPrompt(msg.chat.id, lang);
-        });
-
-        // 6. Interactive Callback Query Handler (Button Clicks)
+        // 1. Interactive Callback Query Handler (Button Clicks)
         this.bot.on('callback_query', async (query) => {
             const data = query.data || '';
             const chatId = query.message ? query.message.chat.id : (query.from ? query.from.id : null);
@@ -163,7 +142,7 @@ class TelegramBotService {
                     await this.handleForwardQuestionToDoctor(chatId, userId, query.from, questionId, userLang);
                 } else if (data.startsWith('query_topic:')) {
                     const topicQuery = data.replace('query_topic:', '');
-                    await this.processUserQuestion(chatId, userId, query.from, topicQuery);
+                    await this.processUserQuestion(chatId, userId, query.from, topicQuery, null, userLang);
                 }
             } catch (cbErr) {
                 console.error('[Telegram Callback Error]:', cbErr.message);
@@ -174,7 +153,7 @@ class TelegramBotService {
             }
         });
 
-        // 7. General Text Message Listener
+        // 2. Single Unified Text Message & Command Listener (No duplicates)
         this.bot.on('message', async (msg) => {
             if (!msg.text) return;
 
@@ -182,11 +161,29 @@ class TelegramBotService {
             const fromUser = msg.from || {};
             const firstName = fromUser.first_name || 'User';
 
-            // Detect language of the incoming message immediately
-            const detectedLang = LanguageService.detectLanguage(text);
+            // Get existing user language from session
+            const currentLang = this.getUserLang(fromUser.id, msg.chat.id);
+            const detectedLang = LanguageService.detectLanguage(text, currentLang);
             this.setUserLang(fromUser.id, msg.chat.id, detectedLang);
 
-            // Check reply keyboard commands across all languages
+            // A. Slash Commands
+            if (/^\/(start|menu)/i.test(text)) {
+                return this.sendWelcomeMenu(msg.chat.id, firstName, null, detectedLang);
+            }
+            if (/^\/help/i.test(text)) {
+                return this.sendHelpMessage(msg.chat.id, null, detectedLang);
+            }
+            if (/^\/gejala/i.test(text)) {
+                return this.sendGejalaMenu(msg.chat.id, null, detectedLang);
+            }
+            if (/^\/dokter/i.test(text)) {
+                return this.sendDoctorPrompt(msg.chat.id, detectedLang);
+            }
+            if (/^\/status/i.test(text)) {
+                return this.sendStatusMessage(msg.chat.id, fromUser.id, null, detectedLang);
+            }
+
+            // B. Reply Keyboard Button Clicks
             if (/^(🏠\s*(Menu Utama|Main Menu))$/i.test(text)) {
                 return this.sendWelcomeMenu(msg.chat.id, firstName, null, detectedLang);
             }
@@ -203,17 +200,17 @@ class TelegramBotService {
                 return this.sendHelpMessage(msg.chat.id, null, detectedLang);
             }
 
-            // Check common greetings or test queries
+            // C. Common Greetings
             const cleanCheck = text.toLowerCase().replace(/[\.\,\!\?\#]/g, '').trim();
             const greetingRegex = /^(tes|test|halo|hai|hi|hello|hey|good\s+(morning|afternoon|evening|night)|howdy|salam|assalamu'?alaikum|assalamualaikum|sugeng\s+(enjang|siang|sonten|dalu)|sampurasun|wilujeng|start|menu|info|help|bantuan|p|ping)$/i;
             if (greetingRegex.test(cleanCheck)) {
                 return this.sendWelcomeMenu(msg.chat.id, firstName, null, detectedLang);
             }
 
-            // Normal health or clinical query
+            // D. Health Question or Clinical Inquiry
             if (!text.startsWith('/')) {
                 console.log(`[Telegram Bot] 📩 Message received from @${fromUser.username || firstName} [Lang: ${detectedLang}]: "${text}"`);
-                await this.processUserQuestion(msg.chat.id, fromUser.id, fromUser, text, msg.message_id);
+                await this.processUserQuestion(msg.chat.id, fromUser.id, fromUser, text, msg.message_id, detectedLang);
             }
         });
     }
@@ -505,7 +502,7 @@ class TelegramBotService {
     /**
      * Process user question through pipeline and reply with interactive buttons (Multilingual)
      */
-    async processUserQuestion(chatId, userId, from, text, messageId = null) {
+    async processUserQuestion(chatId, userId, from, text, messageId = null, forcedLang = null) {
         const result = await this.handleIncomingMessage({
             telegramChatId: chatId,
             telegramUserId: userId,
@@ -513,12 +510,13 @@ class TelegramBotService {
             firstName: from.first_name,
             lastName: from.last_name,
             messageId: messageId || Date.now().toString(),
-            text
+            text,
+            forcedLang
         });
 
         if (!result) return;
 
-        const lang = result.language || 'id';
+        const lang = result.language || forcedLang || this.getUserLang(userId, chatId);
         const ui = LanguageService.getBotUIDictionary(lang);
         let replyMarkup = null;
 
@@ -538,10 +536,11 @@ class TelegramBotService {
     /**
      * Core Pipeline for processing any user message (Used by Telegram, n8n, and Web Simulator)
      */
-    async handleIncomingMessage({ telegramChatId, telegramUserId, username, firstName, lastName, messageId, text }) {
+    async handleIncomingMessage({ telegramChatId, telegramUserId, username, firstName, lastName, messageId, text, forcedLang = null }) {
         const cleanText = (text || '').trim();
         const chatId = String(telegramChatId || 'sim-user-01');
-        const userLang = LanguageService.detectLanguage(cleanText);
+        const currentLang = forcedLang || this.getUserLang(telegramUserId, chatId);
+        const userLang = forcedLang || LanguageService.detectLanguage(cleanText, currentLang);
 
         // 1. Ensure user exists in database and remember preferred language
         let user = db.find('users', u => String(u.telegram_id) === String(telegramUserId || chatId))[0];
@@ -559,7 +558,7 @@ class TelegramBotService {
         }
 
         // 2. FIRST: Search Active Knowledge Base (with multi-language synonym bridging)
-        const searchResult = await KnowledgeRetriever.search(cleanText, 0.58);
+        const searchResult = await KnowledgeRetriever.search(cleanText, 0.58, userLang);
 
         // 3. IF KNOWLEDGE FOUND IN KB -> Answer directly from Knowledge Base in user's language
         if (searchResult.found && searchResult.knowledge) {
@@ -669,7 +668,8 @@ class TelegramBotService {
         if (update.message && update.message.text) {
             const msg = update.message;
             const text = msg.text.trim();
-            const userLang = LanguageService.detectLanguage(text);
+            const currentLang = this.getUserLang(msg.from && msg.from.id, msg.chat.id);
+            const userLang = LanguageService.detectLanguage(text, currentLang);
             this.setUserLang(msg.from && msg.from.id, msg.chat.id, userLang);
 
             if (text.startsWith('/start') || text.startsWith('/menu')) {
@@ -683,7 +683,7 @@ class TelegramBotService {
             } else if (text.startsWith('/status')) {
                 await this.sendStatusMessage(msg.chat.id, msg.from && msg.from.id, null, userLang);
             } else {
-                await this.processUserQuestion(msg.chat.id, msg.from && msg.from.id, msg.from || {}, text, msg.message_id);
+                await this.processUserQuestion(msg.chat.id, msg.from && msg.from.id, msg.from || {}, text, msg.message_id, userLang);
             }
         } else if (update.callback_query) {
             const query = update.callback_query;
@@ -719,7 +719,7 @@ class TelegramBotService {
                 await this.handleForwardQuestionToDoctor(chatId, userId, query.from, qId, userLang);
             } else if (data.startsWith('query_topic:')) {
                 const topic = data.replace('query_topic:', '');
-                await this.processUserQuestion(chatId, userId, query.from, topic);
+                await this.processUserQuestion(chatId, userId, query.from, topic, null, userLang);
             }
         }
     }

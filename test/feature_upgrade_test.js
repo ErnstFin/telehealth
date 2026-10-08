@@ -119,7 +119,7 @@ async function runTests() {
         assert.ok(ui.welcomeText.includes('Hello *Ernst*! Welcome to *TeleHealth*'), 'Welcome text should be in English');
         assert.ok(ui.mainInlineKeyboard.inline_keyboard[0][0].text.includes('Check Common Symptoms'), 'Buttons should be in English');
         assert.ok(ui.mainReplyKeyboard.keyboard[0][0].text.includes('Main Menu'), 'Reply keyboard should be in English');
-        assert.ok(ui.gejalaInlineKeyboard.inline_keyboard[0][0].text.includes('Flu, Cough & Fever'), 'Symptom keyboard in English');
+        assert.ok(ui.gejalaInlineKeyboard.inline_keyboard[0][0].text.includes('Flu & Common Cold'), 'Symptom keyboard in English');
     });
 
     test('Generate Javanese Bot Welcome Menu', () => {
@@ -195,6 +195,42 @@ async function runTests() {
         assert.strictEqual(result.status, 'REJECTED_NON_HEALTH', 'Should reject non-health');
         assert.strictEqual(result.language, 'en', 'Should detect English');
         assert.ok(result.responseMessage.includes('Non-Healthcare Inquiry Notice') || result.responseMessage.includes('TeleHealth AI Assistant'), 'Refusal should be in English');
+    });
+
+    await testAsync('Bot maintains English session language across multiple turns and button clicks', async () => {
+        // Turn 1: User says Hello
+        const turn1 = await telegramBot.handleIncomingMessage({
+            telegramChatId: 'test-session-user-99',
+            telegramUserId: 'test-session-user-99',
+            text: 'Hello'
+        });
+        assert.strictEqual(telegramBot.getUserLang('test-session-user-99', 'test-session-user-99'), 'en');
+
+        // Turn 2: User clicks English symptom topic
+        const turn2 = await telegramBot.handleIncomingMessage({
+            telegramChatId: 'test-session-user-99',
+            telegramUserId: 'test-session-user-99',
+            text: 'how to treat flu and common cold symptoms'
+        });
+        assert.strictEqual(turn2.language, 'en', 'Should stay in English');
+        assert.ok(turn2.responseMessage.includes('VERIFIED MEDICAL INFORMATION'), 'Response should be in English');
+
+        // Turn 3: User asks follow-up
+        const turn3 = await telegramBot.handleIncomingMessage({
+            telegramChatId: 'test-session-user-99',
+            telegramUserId: 'test-session-user-99',
+            text: 'What should I do for headache?'
+        });
+        assert.strictEqual(turn3.language, 'en', 'Should stay in English');
+
+        // Turn 4: User explicitly switches to Indonesian
+        const turn4 = await telegramBot.handleIncomingMessage({
+            telegramChatId: 'test-session-user-99',
+            telegramUserId: 'test-session-user-99',
+            text: 'Halo dokter, saya sakit perut'
+        });
+        assert.strictEqual(turn4.language, 'id', 'Should switch to Indonesian');
+        assert.strictEqual(telegramBot.getUserLang('test-session-user-99', 'test-session-user-99'), 'id');
     });
 
     // -------------------------------------------------------------

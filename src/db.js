@@ -1,7 +1,7 @@
 /**
  * TeleHealth Unified Database Layer
- * Supports PostgreSQL connection (when DATABASE_URL or PG* env is set)
- * and auto-persisted relational file store for local zero-dependency development.
+ * Supports PostgreSQL connection (when DATABASE_URL is set, e.g., Supabase/Railway)
+ * with automatic schema validation, two-way sync, and auto-persisted relational file store.
  */
 
 const fs = require('fs');
@@ -29,23 +29,115 @@ class DatabaseService {
         this.init();
     }
 
-    init() {
+    async init() {
         if (process.env.DATABASE_URL) {
             try {
                 this.pgPool = new Pool({
                     connectionString: process.env.DATABASE_URL,
-                    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+                    ssl: { rejectUnauthorized: false }
                 });
+
+                // Test connection
+                const client = await this.pgPool.connect();
                 this.isPg = true;
-                console.log('[DB] Connected to PostgreSQL Database');
+                client.release();
+                console.log('[DB] ✅ Connected to PostgreSQL / Supabase Database');
+
+                await this.syncFromPostgreSQL();
                 return;
             } catch (err) {
-                console.warn('[DB] Failed to connect to PostgreSQL, falling back to local persistent store:', err.message);
+                console.warn('[DB] ⚠️ Failed to connect to PostgreSQL, falling back to local persistent store:', err.message);
+                this.isPg = false;
             }
         }
 
         // Initialize local store
         this.loadLocalStore();
+    }
+
+    async syncFromPostgreSQL() {
+        if (!this.isPg || !this.pgPool) return;
+
+        try {
+            const tables = [
+                'categories', 'sources', 'knowledge', 'knowledge_candidates',
+                'users', 'questions', 'doctor_questions', 'doctor_responses', 'validation_logs'
+            ];
+
+            for (const tbl of tables) {
+                try {
+                    const res = await this.pgPool.query(`SELECT * FROM ${tbl}`);
+                    if (res && res.rows) {
+                        this.memoryStore[tbl] = res.rows.map(r => {
+                            // Ensure date and JSON fields format cleanly
+                            const copy = { ...r };
+                            if (copy.created_at instanceof Date) copy.created_at = copy.created_at.toISOString();
+                            if (copy.updated_at instanceof Date) copy.updated_at = copy.updated_at.toISOString();
+                            return copy;
+                        });
+                    }
+                } catch (tblErr) {
+                    // If table doesn't exist yet, ignore
+                }
+            }
+
+            // If categories or knowledge in Supabase are empty, seed baseline
+            if (!this.memoryStore.categories || this.memoryStore.categories.length === 0) {
+                console.log('[DB] Seeding baseline data into PostgreSQL...');
+                this.seedInitialData();
+                await this.syncAllToPostgreSQL();
+            }
+
+            this.saveLocalStore();
+            console.log('[DB] 🔄 Synchronized data cache with PostgreSQL / Supabase.');
+        } catch (e) {
+            console.warn('[DB] Error during PostgreSQL sync:', e.message);
+            this.loadLocalStore();
+        }
+    }
+
+    async syncAllToPostgreSQL() {
+        if (!this.isPg || !this.pgPool) return;
+
+        try {
+            // Seed categories
+            for (const cat of this.memoryStore.categories) {
+                await this.pgPool.query(
+                    `INSERT INTO categories (id, name, slug, description, icon, created_at)
+                     VALUES ($1, $2, $3, $4, $5, $6)
+                     ON CONFLICT (id) DO NOTHING`,
+                    [cat.id, cat.name, cat.slug, cat.description, cat.icon || 'stethoscope', cat.created_at || new Date().toISOString()]
+                );
+            }
+
+            // Seed sources
+            for (const src of this.memoryStore.sources) {
+                await this.pgPool.query(
+                    `INSERT INTO sources (id, name, type, publisher, year, url, is_trusted, created_at)
+                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                     ON CONFLICT (id) DO NOTHING`,
+                    [src.id, src.name, src.type, src.publisher, src.year, src.url, src.is_trusted, src.created_at || new Date().toISOString()]
+                );
+            }
+
+            // Seed knowledge
+            for (const kn of this.memoryStore.knowledge) {
+                const pointsStr = typeof kn.important_points === 'string' ? kn.important_points : JSON.stringify(kn.important_points || []);
+                await this.pgPool.query(
+                    `INSERT INTO knowledge (id, title, topic_keywords, short_answer, important_points, when_to_see_doctor, content_full, category_id, source_id, status, validated_by, validated_at, created_at, updated_at)
+                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+                     ON CONFLICT (id) DO NOTHING`,
+                    [
+                        kn.id, kn.title, kn.topic_keywords, kn.short_answer, pointsStr,
+                        kn.when_to_see_doctor, kn.content_full, kn.category_id, kn.source_id,
+                        kn.status || 'ACTIVE', kn.validated_by || 'Admin', kn.validated_at || new Date().toISOString(),
+                        kn.created_at || new Date().toISOString(), kn.updated_at || new Date().toISOString()
+                    ]
+                );
+            }
+        } catch (err) {
+            console.warn('[DB] Sync to PostgreSQL warning:', err.message);
+        }
     }
 
     loadLocalStore() {
@@ -220,87 +312,10 @@ class DatabaseService {
             }
         ];
 
-        this.memoryStore.knowledge_candidates = [
-            {
-                id: 1,
-                title: 'Tips Mengatasi Batuk Kering Akibat Iritasi Tenggorokan',
-                type: 'DOCTOR_RESPONSE',
-                question_text: 'Tenggorokan saya gatal dan batuk kering sudah 2 hari, obat alami apa yang bisa dicoba?',
-                proposed_answer: 'Untuk batuk kering yang disebabkan oleh iritasi tenggorokan ringan atau udara kering, konsumsi 1 sendok madu murni dicampur air lemon hangat dapat membantu melapisi mukosa tenggorokan dan meredakan rasa gatal.',
-                important_points: JSON.stringify([
-                    'Minum madu murni 1-2 sendok teh sebelum tidur.',
-                    'Hindari makanan gorengan berminyak dan minuman dingin.',
-                    'Gunakan humidifier atau pelembap udara di kamar tidur.'
-                ]),
-                when_to_see_doctor: 'Periksakan ke dokter jika batuk berlangsung lebih dari 2 minggu, disertai batuk berdarah, demam tinggi, atau sesak napas.',
-                doctor_name: 'Dr. Siti Rahmawati, Sp.PD',
-                doctor_id: 'DOC-001',
-                category_id: 1,
-                source_id: 6,
-                status: 'PENDING',
-                rejection_reason: null,
-                submitted_at: new Date('2026-09-24T08:00:00Z').toISOString(),
-                processed_at: null,
-                processed_by: null
-            },
-            {
-                id: 2,
-                title: 'Penanganan Awal Nyeri Otot (Myalgia) Pasca Olahraga',
-                type: 'JOURNAL',
-                question_text: 'Bagaimana meredakan nyeri otot kram setelah berolahraga berat?',
-                proposed_answer: 'Nyeri otot tunda (DOMS) dapat diredakan dengan metode kompres dingin pada 24 jam pertama, dilanjutkan kompres hangat, hidrasi elektrolit, dan peregangan statis ringan.',
-                important_points: JSON.stringify([
-                    'Lakukan peregangan ringan dan jangan langsung istirahat total tanpa pendinginan.',
-                    'Kompres es 15 menit jika ada bengkak atau rasa panas.',
-                    'Pastikan asupan protein dan air cukup untuk pemulihan jaringan otot.'
-                ]),
-                when_to_see_doctor: 'Periksakan ke dokter bila nyeri sangat intens hingga tidak bisa menggerakkan anggota gerak atau urine berwarna gelap seperti teh (tanda rhabdomyolysis).',
-                doctor_name: 'Indonesian Sports Medicine Journal',
-                doctor_id: null,
-                category_id: 2,
-                source_id: null,
-                status: 'PENDING',
-                rejection_reason: null,
-                submitted_at: new Date('2026-09-24T08:15:00Z').toISOString(),
-                processed_at: null,
-                processed_by: null
-            }
-        ];
-
-        this.memoryStore.users = [
-            { id: 1, telegram_id: '99887766', username: 'ahmad_fauzi', first_name: 'Ahmad', last_name: 'Fauzi', phone_number: '+6281234567890', created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
-            { id: 2, telegram_id: '55443322', username: 'nur_aini', first_name: 'Nur', last_name: 'Aini', phone_number: '+6289876543210', created_at: new Date().toISOString(), updated_at: new Date().toISOString() }
-        ];
-
-        this.memoryStore.doctor_questions = [
-            {
-                id: 1,
-                question_id: 1,
-                user_id: 1,
-                telegram_chat_id: '99887766',
-                question_text: 'Saya sering merasa berdebar dan sesak di dada kiri setelah beraktivitas tangga, apakah ini berbahaya?',
-                status: 'WAITING',
-                assigned_doctor_id: null,
-                assigned_doctor_name: null,
-                assigned_at: null,
-                created_at: new Date('2026-09-24T07:45:00Z').toISOString(),
-                updated_at: new Date('2026-09-24T07:45:00Z').toISOString()
-            }
-        ];
-
-        this.memoryStore.validation_logs = [
-            {
-                id: 1,
-                candidate_id: null,
-                knowledge_id: 1,
-                admin_user: 'Admin Medis TeleHealth',
-                action: 'VALIDATED',
-                previous_status: 'PENDING',
-                new_status: 'ACTIVE',
-                notes: 'Validasi panduan tata laksana flu awal dari Journal PAPDI 2024.',
-                created_at: new Date('2024-01-15T10:00:00Z').toISOString()
-            }
-        ];
+        this.memoryStore.knowledge_candidates = [];
+        this.memoryStore.users = [];
+        this.memoryStore.doctor_questions = [];
+        this.memoryStore.validation_logs = [];
     }
 
     // Generic Helper Methods for Collections
@@ -333,7 +348,29 @@ class DatabaseService {
         };
         table.push(newRecord);
         this.saveLocalStore();
+
+        // Async sync to PostgreSQL if connected
+        if (this.isPg && this.pgPool) {
+            this.insertToPostgres(tableName, newRecord).catch(e => {
+                console.warn(`[DB PG Insert Error (${tableName})]:`, e.message);
+            });
+        }
+
         return newRecord;
+    }
+
+    async insertToPostgres(tableName, record) {
+        const keys = Object.keys(record);
+        const columns = keys.join(', ');
+        const placeholders = keys.map((_, i) => `$${i + 1}`).join(', ');
+        const values = keys.map(k => {
+            const val = record[k];
+            if (typeof val === 'object' && val !== null) return JSON.stringify(val);
+            return val;
+        });
+
+        const query = `INSERT INTO ${tableName} (${columns}) VALUES (${placeholders}) ON CONFLICT DO NOTHING`;
+        await this.pgPool.query(query, values);
     }
 
     update(tableName, id, updates) {
@@ -348,7 +385,31 @@ class DatabaseService {
         };
         table[index] = updated;
         this.saveLocalStore();
+
+        // Async sync to PostgreSQL if connected
+        if (this.isPg && this.pgPool) {
+            this.updateToPostgres(tableName, id, updates).catch(e => {
+                console.warn(`[DB PG Update Error (${tableName})]:`, e.message);
+            });
+        }
+
         return updated;
+    }
+
+    async updateToPostgres(tableName, id, updates) {
+        const keys = Object.keys(updates);
+        if (keys.length === 0) return;
+
+        const setClause = keys.map((k, i) => `${k} = $${i + 1}`).join(', ');
+        const values = keys.map(k => {
+            const val = updates[k];
+            if (typeof val === 'object' && val !== null) return JSON.stringify(val);
+            return val;
+        });
+        values.push(id);
+
+        const query = `UPDATE ${tableName} SET ${setClause}, updated_at = NOW() WHERE id = $${values.length}`;
+        await this.pgPool.query(query, values);
     }
 
     delete(tableName, id) {
@@ -358,6 +419,14 @@ class DatabaseService {
 
         table.splice(index, 1);
         this.saveLocalStore();
+
+        // Async sync to PostgreSQL if connected
+        if (this.isPg && this.pgPool) {
+            this.pgPool.query(`DELETE FROM ${tableName} WHERE id = $1`, [id]).catch(e => {
+                console.warn(`[DB PG Delete Error (${tableName})]:`, e.message);
+            });
+        }
+
         return true;
     }
 
@@ -395,6 +464,11 @@ class DatabaseService {
                 notes: 'Superadmin mereset & mengosongkan seluruh Knowledge Base dan Candidates.'
             });
             this.saveLocalStore();
+
+            if (this.isPg && this.pgPool) {
+                this.pgPool.query('DELETE FROM knowledge; DELETE FROM knowledge_candidates;').catch(() => {});
+            }
+
             return { mode: 'CLEAR_ALL', count: 0, message: 'Seluruh data knowledge base berhasil dikosongkan.' };
         } else {
             // Reset to DEFAULT medical baseline
@@ -409,6 +483,11 @@ class DatabaseService {
                 notes: 'Superadmin mereset Knowledge Base kembali ke pedoman klinis standar (PAPDI/WHO/Kemenkes).'
             });
             this.saveLocalStore();
+
+            if (this.isPg && this.pgPool) {
+                this.syncAllToPostgreSQL().catch(() => {});
+            }
+
             return { mode: 'DEFAULT', count: this.memoryStore.knowledge.length, message: 'Knowledge Base berhasil direset ke standar pedoman klinis awal.' };
         }
     }

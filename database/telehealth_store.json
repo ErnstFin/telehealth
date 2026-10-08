@@ -1,26 +1,5 @@
 {
-  "users": [
-    {
-      "id": 1,
-      "telegram_id": "99887766",
-      "username": "ahmad_fauzi",
-      "first_name": "Ahmad",
-      "last_name": "Fauzi",
-      "phone_number": "+6281234567890",
-      "created_at": "2026-10-08T09:47:21.111Z",
-      "updated_at": "2026-10-08T09:47:21.111Z"
-    },
-    {
-      "id": 2,
-      "telegram_id": "55443322",
-      "username": "nur_aini",
-      "first_name": "Nur",
-      "last_name": "Aini",
-      "phone_number": "+6289876543210",
-      "created_at": "2026-10-08T09:47:21.111Z",
-      "updated_at": "2026-10-08T09:47:21.111Z"
-    }
-  ],
+  "users": [],
   "categories": [
     {
       "id": 1,
@@ -28,7 +7,7 @@
       "slug": "flu-pernapasan",
       "description": "Infeksi saluran pernapasan akut, pilek, flu, batuk, dan sakit tenggorokan.",
       "icon": "wind",
-      "created_at": "2026-10-08T09:47:21.111Z"
+      "created_at": "2026-10-08T11:27:27.644Z"
     },
     {
       "id": 2,
@@ -36,7 +15,7 @@
       "slug": "demam-infeksi",
       "description": "Kondisi demam, infeksi virus/bakteri, dan respon peradangan tubuh.",
       "icon": "thermometer",
-      "created_at": "2026-10-08T09:47:21.111Z"
+      "created_at": "2026-10-08T11:27:27.644Z"
     },
     {
       "id": 3,
@@ -44,7 +23,7 @@
       "slug": "sakit-kepala-neurologi",
       "description": "Migrain, tension headache, vertigo, dan gangguan saraf ringan.",
       "icon": "brain",
-      "created_at": "2026-10-08T09:47:21.111Z"
+      "created_at": "2026-10-08T11:27:27.644Z"
     },
     {
       "id": 4,
@@ -52,7 +31,7 @@
       "slug": "darah-kardiovaskular",
       "description": "Anemia, tekanan darah tinggi/rendah, dan kesehatan jantung.",
       "icon": "heart-pulse",
-      "created_at": "2026-10-08T09:47:21.111Z"
+      "created_at": "2026-10-08T11:27:27.644Z"
     },
     {
       "id": 5,
@@ -60,7 +39,7 @@
       "slug": "pencernaan-lambung",
       "description": "Gastritis, asam lambung (GERD), diare, konstipasi, dan maag.",
       "icon": "activity",
-      "created_at": "2026-10-08T09:47:21.111Z"
+      "created_at": "2026-10-08T11:27:27.644Z"
     },
     {
       "id": 6,
@@ -68,7 +47,7 @@
       "slug": "kesehatan-anak",
       "description": "Kesehatan balita dan anak, imunisasi, dan nutrisi tumbuh kembang.",
       "icon": "baby",
-      "created_at": "2026-10-08T09:47:21.111Z"
+      "created_at": "2026-10-08T11:27:27.644Z"
     },
     {
       "id": 7,
@@ -76,7 +55,7 @@
       "slug": "umum-pengetahuan-lain",
       "description": "Informasi umum, panduan teknis, dan pengetahuan multi-disiplin.",
       "icon": "book",
-      "created_at": "2026-10-08T09:47:21.111Z"
+      "created_at": "2026-10-08T11:27:27.644Z"
     }
   ],
   "sources": [
@@ -88,7 +67,7 @@
       "year": 2024,
       "url": "https://papdi.or.id/guidelines/common-cold-2024",
       "is_trusted": true,
-      "created_at": "2026-10-08T09:47:21.111Z"
+      "created_at": "2026-10-08T11:27:27.644Z"
     },
     {
       "id": 2,
@@ -98,7 +77,7 @@
       "year": 2023,
       "url": "https://kemkes.go.id/cpg-demam",
       "is_trusted": true,
-      "created_at": "2026-10-08T09:47:21.111Z"
+      "created_at": "2026-10-08T11:27:27.644Z"
     },
     {
       "id": 3,
@@ -108,7 +87,7 @@
       "year": 2024,
       "url": "https://perdosi.org/guidelines/headache-2024",
       "is_trusted": true,
-      "created_at": "2026-10-08T09:47:21.111Z"
+      "created_at": "2026-10-08T11:27:27.644Z"
     },
     {
       "id": 4,
@@ -118,7 +97,7 @@
       "year": 2023,
       "url": "https://phtdi.org/guidelines/anemia-guide",
       "is_trusted": true,
-      "created_at": "2026-10-08T09:47:21.111Z"
+      "created_at": "2026-10-08T11:27:27.644Z"
     },
     {
       "id": 5,
@@ -128,7 +107,7 @@
       "year": 2023,
       "url": "https://pbpegi.com/guidelines-dyspepsia",
       "is_trusted": true,
-      "created_at": "2026-10-08T09:47:21.111Z"
+      "created_at": "2026-10-08T11:27:27.644Z"
     },
     {
       "id": 6,
@@ -138,7 +117,7 @@
       "year": 2024,
       "url": null,
       "is_trusted": true,
-      "created_at": "2026-10-08T09:47:21.111Z"
+      "created_at": "2026-10-08T11:27:27.644Z"
     }
   ],
   "knowledge": [
@@ -156,7 +135,7 @@
       "validated_by": "Admin Medis TeleHealth",
       "validated_at": "2024-01-15T10:00:00.000Z",
       "created_at": "2024-01-15T09:00:00.000Z",
-      "updated_at": "2026-10-08T09:47:21.111Z"
+      "updated_at": "2026-10-08T11:27:27.644Z"
     },
     {
       "id": 2,
@@ -172,7 +151,7 @@
       "validated_by": "Admin Medis TeleHealth",
       "validated_at": "2024-01-20T11:00:00.000Z",
       "created_at": "2024-01-20T10:00:00.000Z",
-      "updated_at": "2026-10-08T09:47:21.111Z"
+      "updated_at": "2026-10-08T11:27:27.644Z"
     },
     {
       "id": 3,
@@ -188,7 +167,7 @@
       "validated_by": "Admin Medis TeleHealth",
       "validated_at": "2024-02-01T08:30:00.000Z",
       "created_at": "2024-02-01T08:00:00.000Z",
-      "updated_at": "2026-10-08T09:47:21.111Z"
+      "updated_at": "2026-10-08T11:27:27.644Z"
     },
     {
       "id": 4,
@@ -204,7 +183,7 @@
       "validated_by": "Admin Medis TeleHealth",
       "validated_at": "2024-02-10T14:20:00.000Z",
       "created_at": "2024-02-10T14:00:00.000Z",
-      "updated_at": "2026-10-08T09:47:21.111Z"
+      "updated_at": "2026-10-08T11:27:27.644Z"
     },
     {
       "id": 5,
@@ -220,47 +199,10 @@
       "validated_by": "Admin Medis TeleHealth",
       "validated_at": "2024-02-15T09:15:00.000Z",
       "created_at": "2024-02-15T09:00:00.000Z",
-      "updated_at": "2026-10-08T09:47:21.111Z"
+      "updated_at": "2026-10-08T11:27:27.644Z"
     }
   ],
-  "knowledge_candidates": [
-    {
-      "id": 1,
-      "title": "Tips Mengatasi Batuk Kering Akibat Iritasi Tenggorokan",
-      "type": "DOCTOR_RESPONSE",
-      "question_text": "Tenggorokan saya gatal dan batuk kering sudah 2 hari, obat alami apa yang bisa dicoba?",
-      "proposed_answer": "Untuk batuk kering yang disebabkan oleh iritasi tenggorokan ringan atau udara kering, konsumsi 1 sendok madu murni dicampur air lemon hangat dapat membantu melapisi mukosa tenggorokan dan meredakan rasa gatal.",
-      "important_points": "[\"Minum madu murni 1-2 sendok teh sebelum tidur.\",\"Hindari makanan gorengan berminyak dan minuman dingin.\",\"Gunakan humidifier atau pelembap udara di kamar tidur.\"]",
-      "when_to_see_doctor": "Periksakan ke dokter jika batuk berlangsung lebih dari 2 minggu, disertai batuk berdarah, demam tinggi, atau sesak napas.",
-      "doctor_name": "Dr. Siti Rahmawati, Sp.PD",
-      "doctor_id": "DOC-001",
-      "category_id": 1,
-      "source_id": 6,
-      "status": "PENDING",
-      "rejection_reason": null,
-      "submitted_at": "2026-09-24T08:00:00.000Z",
-      "processed_at": null,
-      "processed_by": null
-    },
-    {
-      "id": 2,
-      "title": "Penanganan Awal Nyeri Otot (Myalgia) Pasca Olahraga",
-      "type": "JOURNAL",
-      "question_text": "Bagaimana meredakan nyeri otot kram setelah berolahraga berat?",
-      "proposed_answer": "Nyeri otot tunda (DOMS) dapat diredakan dengan metode kompres dingin pada 24 jam pertama, dilanjutkan kompres hangat, hidrasi elektrolit, dan peregangan statis ringan.",
-      "important_points": "[\"Lakukan peregangan ringan dan jangan langsung istirahat total tanpa pendinginan.\",\"Kompres es 15 menit jika ada bengkak atau rasa panas.\",\"Pastikan asupan protein dan air cukup untuk pemulihan jaringan otot.\"]",
-      "when_to_see_doctor": "Periksakan ke dokter bila nyeri sangat intens hingga tidak bisa menggerakkan anggota gerak atau urine berwarna gelap seperti teh (tanda rhabdomyolysis).",
-      "doctor_name": "Indonesian Sports Medicine Journal",
-      "doctor_id": null,
-      "category_id": 2,
-      "source_id": null,
-      "status": "PENDING",
-      "rejection_reason": null,
-      "submitted_at": "2026-09-24T08:15:00.000Z",
-      "processed_at": null,
-      "processed_by": null
-    }
-  ],
+  "knowledge_candidates": [],
   "questions": [
     {
       "id": 1,
@@ -2655,23 +2597,317 @@
       "bot_response": "🩺 *TeleHealth AI Assistant* — Specialized Healthcare Solution\n━━━━━━━━━━━━━━━━━━━━━━━━━━\nSorry, **TeleHealth** is an assistant exclusively dedicated to **healthcare and clinical medical inquiries**.\n\nOur service is designed to answer questions regarding:\n• 🌡️ *Disease symptoms, first aid & self-care*\n• 🩺 *Clinical condition explanations & medication guides*\n• 💊 *Preventive healthcare & healthy lifestyle guidelines*\n• 👨‍⚕️ *Direct consultation with on-call physicians*\n\nPlease ask a health-related question (e.g. \"How to relieve headache and fever?\") or choose a topic from the menu. 🌿",
       "created_at": "2026-10-08T09:47:21.097Z",
       "updated_at": "2026-10-08T09:47:21.097Z"
-    }
-  ],
-  "doctor_questions": [
+    },
     {
-      "id": 1,
-      "question_id": 1,
+      "id": 172,
+      "user_id": 3,
+      "telegram_chat_id": "test-device-en",
+      "telegram_message_id": "",
+      "question_text": "How can I treat mild fever and body chills at home?",
+      "is_health_topic": true,
+      "relevance_score": 0.64,
+      "matched_knowledge_id": 2,
+      "status": "ANSWERED_BY_KB",
+      "bot_response": "💡 *[VERIFIED MEDICAL INFORMATION]*\n📂 *Category:* _Fever & General Infections_\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n🩺 *Causes and First Aid for Fever in Adults*\n\n📋 *Clinical Summary:*\nFever is a physiological immune response fighting off viral or bacterial infection. Normal body temperature ranges between 36.5°C - 37.5°C.\n\n📌 *Key Management Points:*\n• Measure temperature periodically using a calibrated medical thermometer (fever is > 38°C).\n• Apply lukewarm water compress (not ice water) to forehead, armpits, or groin folds.\n• Maintain adequate fluid intake to avoid dehydration from body heat loss.\n• Wear loose, breathable cotton clothing in a well-ventilated room.\n• Take antipyretic medication (such as Paracetamol) following package dosages if feeling uncomfortable.\n\n🚨 *When to See a Doctor / Red Flags:*\nVisit a healthcare facility if temperature exceeds 39°C, fever persists beyond 3 days, red rash appears, stiff neck, seizures, continuous vomiting, or reduced consciousness occurs.\n\n📚 *Source Reference:*\n_Clinical Practice Guideline for Evaluation of Fever in Adults (2023) - WHO Health Guidelines & Kemenkes RI_\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n⚕️ _Note: This information is sourced from verified medical guidelines and does not replace in-person consultation with a qualified doctor._",
+      "created_at": "2026-10-08T11:25:24.638Z",
+      "updated_at": "2026-10-08T11:25:24.638Z"
+    },
+    {
+      "id": 173,
+      "user_id": 3,
+      "telegram_chat_id": "test-device-en",
+      "telegram_message_id": "",
+      "question_text": "How to write a Python script for database query?",
+      "is_health_topic": false,
+      "relevance_score": 0,
+      "matched_knowledge_id": null,
+      "status": "REJECTED_NON_HEALTH",
+      "bot_response": "🩺 *TeleHealth AI Assistant* — Specialized Healthcare Solution\n━━━━━━━━━━━━━━━━━━━━━━━━━━\nSorry, **TeleHealth** is an assistant exclusively dedicated to **healthcare and clinical medical inquiries**.\n\nOur service is designed to answer questions regarding:\n• 🌡️ *Disease symptoms, first aid & self-care*\n• 🩺 *Clinical condition explanations & medication guides*\n• 💊 *Preventive healthcare & healthy lifestyle guidelines*\n• 👨‍⚕️ *Direct consultation with on-call physicians*\n\nPlease ask a health-related question (e.g. \"How to relieve headache and fever?\") or choose a topic from the menu. 🌿",
+      "created_at": "2026-10-08T11:25:24.649Z",
+      "updated_at": "2026-10-08T11:25:24.649Z"
+    },
+    {
+      "id": 174,
       "user_id": 1,
-      "telegram_chat_id": "99887766",
-      "question_text": "Saya sering merasa berdebar dan sesak di dada kiri setelah beraktivitas tangga, apakah ini berbahaya?",
-      "status": "WAITING",
-      "assigned_doctor_id": null,
-      "assigned_doctor_name": null,
-      "assigned_at": null,
-      "created_at": "2026-09-24T07:45:00.000Z",
-      "updated_at": "2026-09-24T07:45:00.000Z"
+      "telegram_chat_id": "test-device-en",
+      "telegram_message_id": "",
+      "question_text": "How can I treat mild fever and body chills at home?",
+      "is_health_topic": true,
+      "relevance_score": 0.64,
+      "matched_knowledge_id": 2,
+      "status": "ANSWERED_BY_KB",
+      "bot_response": "💡 *[VERIFIED MEDICAL INFORMATION]*\n📂 *Category:* _Fever & General Infections_\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n🩺 *Causes and First Aid for Fever in Adults*\n\n📋 *Clinical Summary:*\nFever is a physiological immune response fighting off viral or bacterial infection. Normal body temperature ranges between 36.5°C - 37.5°C.\n\n📌 *Key Management Points:*\n• Measure temperature periodically using a calibrated medical thermometer (fever is > 38°C).\n• Apply lukewarm water compress (not ice water) to forehead, armpits, or groin folds.\n• Maintain adequate fluid intake to avoid dehydration from body heat loss.\n• Wear loose, breathable cotton clothing in a well-ventilated room.\n• Take antipyretic medication (such as Paracetamol) following package dosages if feeling uncomfortable.\n\n🚨 *When to See a Doctor / Red Flags:*\nVisit a healthcare facility if temperature exceeds 39°C, fever persists beyond 3 days, red rash appears, stiff neck, seizures, continuous vomiting, or reduced consciousness occurs.\n\n📚 *Source Reference:*\n_Clinical Practice Guideline for Evaluation of Fever in Adults (2023) - WHO Health Guidelines & Kemenkes RI_\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n⚕️ _Note: This information is sourced from verified medical guidelines and does not replace in-person consultation with a qualified doctor._",
+      "created_at": "2026-10-08T11:26:03.151Z",
+      "updated_at": "2026-10-08T11:26:03.151Z"
+    },
+    {
+      "id": 175,
+      "user_id": 1,
+      "telegram_chat_id": "test-device-en",
+      "telegram_message_id": "",
+      "question_text": "How to write a Python script for database query?",
+      "is_health_topic": false,
+      "relevance_score": 0,
+      "matched_knowledge_id": null,
+      "status": "REJECTED_NON_HEALTH",
+      "bot_response": "🩺 *TeleHealth AI Assistant* — Specialized Healthcare Solution\n━━━━━━━━━━━━━━━━━━━━━━━━━━\nSorry, **TeleHealth** is an assistant exclusively dedicated to **healthcare and clinical medical inquiries**.\n\nOur service is designed to answer questions regarding:\n• 🌡️ *Disease symptoms, first aid & self-care*\n• 🩺 *Clinical condition explanations & medication guides*\n• 💊 *Preventive healthcare & healthy lifestyle guidelines*\n• 👨‍⚕️ *Direct consultation with on-call physicians*\n\nPlease ask a health-related question (e.g. \"How to relieve headache and fever?\") or choose a topic from the menu. 🌿",
+      "created_at": "2026-10-08T11:26:03.165Z",
+      "updated_at": "2026-10-08T11:26:03.165Z"
+    },
+    {
+      "id": 176,
+      "user_id": 2,
+      "telegram_chat_id": "test-session-user-99",
+      "telegram_message_id": "",
+      "question_text": "Hello",
+      "is_health_topic": false,
+      "relevance_score": 0,
+      "matched_knowledge_id": null,
+      "status": "REJECTED_NON_HEALTH",
+      "bot_response": "🩺 *TeleHealth AI Assistant* — Specialized Healthcare Solution\n━━━━━━━━━━━━━━━━━━━━━━━━━━\nSorry, **TeleHealth** is an assistant exclusively dedicated to **healthcare and clinical medical inquiries**.\n\nOur service is designed to answer questions regarding:\n• 🌡️ *Disease symptoms, first aid & self-care*\n• 🩺 *Clinical condition explanations & medication guides*\n• 💊 *Preventive healthcare & healthy lifestyle guidelines*\n• 👨‍⚕️ *Direct consultation with on-call physicians*\n\nPlease ask a health-related question (e.g. \"How to relieve headache and fever?\") or choose a topic from the menu. 🌿",
+      "created_at": "2026-10-08T11:26:03.176Z",
+      "updated_at": "2026-10-08T11:26:03.176Z"
+    },
+    {
+      "id": 177,
+      "user_id": 2,
+      "telegram_chat_id": "test-session-user-99",
+      "telegram_message_id": "",
+      "question_text": "treatment for flu cough and fever",
+      "is_health_topic": true,
+      "relevance_score": 0.46,
+      "matched_knowledge_id": null,
+      "status": "FORWARDED_TO_DOCTOR",
+      "bot_response": "🟢 *[#DQ-1] Consultation Forwarded to On-Call Doctor*\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n📝 *Patient Inquiry:* _\"treatment for flu cough and fever\"_\n\n⏳ *Status:* Waiting for Doctor Response\n⏱️ *Estimated Response:* 5 - 15 Minutes\n\n👨‍⚕️ Your question is not yet in our pre-verified archive and has been queued directly to our *Doctor Queue*.\n\nOur on-call medical specialist will review your symptoms and provide personalized medical advice via this chat shortly.",
+      "created_at": "2026-10-08T11:26:03.183Z",
+      "updated_at": "2026-10-08T11:26:03.188Z"
+    },
+    {
+      "id": 178,
+      "user_id": 1,
+      "telegram_chat_id": "test-device-en",
+      "telegram_message_id": "",
+      "question_text": "How can I treat mild fever and body chills at home?",
+      "is_health_topic": true,
+      "relevance_score": 0.64,
+      "matched_knowledge_id": 2,
+      "status": "ANSWERED_BY_KB",
+      "bot_response": "💡 *[VERIFIED MEDICAL INFORMATION]*\n📂 *Category:* _Fever & General Infections_\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n🩺 *Causes and First Aid for Fever in Adults*\n\n📋 *Clinical Summary:*\nFever is a physiological immune response fighting off viral or bacterial infection. Normal body temperature ranges between 36.5°C - 37.5°C.\n\n📌 *Key Management Points:*\n• Measure temperature periodically using a calibrated medical thermometer (fever is > 38°C).\n• Apply lukewarm water compress (not ice water) to forehead, armpits, or groin folds.\n• Maintain adequate fluid intake to avoid dehydration from body heat loss.\n• Wear loose, breathable cotton clothing in a well-ventilated room.\n• Take antipyretic medication (such as Paracetamol) following package dosages if feeling uncomfortable.\n\n🚨 *When to See a Doctor / Red Flags:*\nVisit a healthcare facility if temperature exceeds 39°C, fever persists beyond 3 days, red rash appears, stiff neck, seizures, continuous vomiting, or reduced consciousness occurs.\n\n📚 *Source Reference:*\n_Clinical Practice Guideline for Evaluation of Fever in Adults (2023) - WHO Health Guidelines & Kemenkes RI_\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n⚕️ _Note: This information is sourced from verified medical guidelines and does not replace in-person consultation with a qualified doctor._",
+      "created_at": "2026-10-08T11:26:36.016Z",
+      "updated_at": "2026-10-08T11:26:36.016Z"
+    },
+    {
+      "id": 179,
+      "user_id": 1,
+      "telegram_chat_id": "test-device-en",
+      "telegram_message_id": "",
+      "question_text": "How to write a Python script for database query?",
+      "is_health_topic": false,
+      "relevance_score": 0,
+      "matched_knowledge_id": null,
+      "status": "REJECTED_NON_HEALTH",
+      "bot_response": "🩺 *TeleHealth AI Assistant* — Specialized Healthcare Solution\n━━━━━━━━━━━━━━━━━━━━━━━━━━\nSorry, **TeleHealth** is an assistant exclusively dedicated to **healthcare and clinical medical inquiries**.\n\nOur service is designed to answer questions regarding:\n• 🌡️ *Disease symptoms, first aid & self-care*\n• 🩺 *Clinical condition explanations & medication guides*\n• 💊 *Preventive healthcare & healthy lifestyle guidelines*\n• 👨‍⚕️ *Direct consultation with on-call physicians*\n\nPlease ask a health-related question (e.g. \"How to relieve headache and fever?\") or choose a topic from the menu. 🌿",
+      "created_at": "2026-10-08T11:26:36.028Z",
+      "updated_at": "2026-10-08T11:26:36.028Z"
+    },
+    {
+      "id": 180,
+      "user_id": 2,
+      "telegram_chat_id": "test-session-user-99",
+      "telegram_message_id": "",
+      "question_text": "Hello",
+      "is_health_topic": false,
+      "relevance_score": 0,
+      "matched_knowledge_id": null,
+      "status": "REJECTED_NON_HEALTH",
+      "bot_response": "🩺 *TeleHealth AI Assistant* — Specialized Healthcare Solution\n━━━━━━━━━━━━━━━━━━━━━━━━━━\nSorry, **TeleHealth** is an assistant exclusively dedicated to **healthcare and clinical medical inquiries**.\n\nOur service is designed to answer questions regarding:\n• 🌡️ *Disease symptoms, first aid & self-care*\n• 🩺 *Clinical condition explanations & medication guides*\n• 💊 *Preventive healthcare & healthy lifestyle guidelines*\n• 👨‍⚕️ *Direct consultation with on-call physicians*\n\nPlease ask a health-related question (e.g. \"How to relieve headache and fever?\") or choose a topic from the menu. 🌿",
+      "created_at": "2026-10-08T11:26:36.039Z",
+      "updated_at": "2026-10-08T11:26:36.039Z"
+    },
+    {
+      "id": 181,
+      "user_id": 2,
+      "telegram_chat_id": "test-session-user-99",
+      "telegram_message_id": "",
+      "question_text": "treatment for flu cough and fever",
+      "is_health_topic": true,
+      "relevance_score": 0.46,
+      "matched_knowledge_id": null,
+      "status": "FORWARDED_TO_DOCTOR",
+      "bot_response": "🟢 *[#DQ-1] Consultation Forwarded to On-Call Doctor*\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n📝 *Patient Inquiry:* _\"treatment for flu cough and fever\"_\n\n⏳ *Status:* Waiting for Doctor Response\n⏱️ *Estimated Response:* 5 - 15 Minutes\n\n👨‍⚕️ Your question is not yet in our pre-verified archive and has been queued directly to our *Doctor Queue*.\n\nOur on-call medical specialist will review your symptoms and provide personalized medical advice via this chat shortly.",
+      "created_at": "2026-10-08T11:26:36.054Z",
+      "updated_at": "2026-10-08T11:26:36.059Z"
+    },
+    {
+      "id": 182,
+      "user_id": 1,
+      "telegram_chat_id": "test-device-en",
+      "telegram_message_id": "",
+      "question_text": "How can I treat mild fever and body chills at home?",
+      "is_health_topic": true,
+      "relevance_score": 0.64,
+      "matched_knowledge_id": 2,
+      "status": "ANSWERED_BY_KB",
+      "bot_response": "💡 *[VERIFIED MEDICAL INFORMATION]*\n📂 *Category:* _Fever & General Infections_\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n🩺 *Causes and First Aid for Fever in Adults*\n\n📋 *Clinical Summary:*\nFever is a physiological immune response fighting off viral or bacterial infection. Normal body temperature ranges between 36.5°C - 37.5°C.\n\n📌 *Key Management Points:*\n• Measure temperature periodically using a calibrated medical thermometer (fever is > 38°C).\n• Apply lukewarm water compress (not ice water) to forehead, armpits, or groin folds.\n• Maintain adequate fluid intake to avoid dehydration from body heat loss.\n• Wear loose, breathable cotton clothing in a well-ventilated room.\n• Take antipyretic medication (such as Paracetamol) following package dosages if feeling uncomfortable.\n\n🚨 *When to See a Doctor / Red Flags:*\nVisit a healthcare facility if temperature exceeds 39°C, fever persists beyond 3 days, red rash appears, stiff neck, seizures, continuous vomiting, or reduced consciousness occurs.\n\n📚 *Source Reference:*\n_Clinical Practice Guideline for Evaluation of Fever in Adults (2023) - WHO Health Guidelines & Kemenkes RI_\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n⚕️ _Note: This information is sourced from verified medical guidelines and does not replace in-person consultation with a qualified doctor._",
+      "created_at": "2026-10-08T11:27:14.820Z",
+      "updated_at": "2026-10-08T11:27:14.820Z"
+    },
+    {
+      "id": 183,
+      "user_id": 1,
+      "telegram_chat_id": "test-device-en",
+      "telegram_message_id": "",
+      "question_text": "How to write a Python script for database query?",
+      "is_health_topic": false,
+      "relevance_score": 0,
+      "matched_knowledge_id": null,
+      "status": "REJECTED_NON_HEALTH",
+      "bot_response": "🩺 *TeleHealth AI Assistant* — Specialized Healthcare Solution\n━━━━━━━━━━━━━━━━━━━━━━━━━━\nSorry, **TeleHealth** is an assistant exclusively dedicated to **healthcare and clinical medical inquiries**.\n\nOur service is designed to answer questions regarding:\n• 🌡️ *Disease symptoms, first aid & self-care*\n• 🩺 *Clinical condition explanations & medication guides*\n• 💊 *Preventive healthcare & healthy lifestyle guidelines*\n• 👨‍⚕️ *Direct consultation with on-call physicians*\n\nPlease ask a health-related question (e.g. \"How to relieve headache and fever?\") or choose a topic from the menu. 🌿",
+      "created_at": "2026-10-08T11:27:14.832Z",
+      "updated_at": "2026-10-08T11:27:14.832Z"
+    },
+    {
+      "id": 184,
+      "user_id": 2,
+      "telegram_chat_id": "test-session-user-99",
+      "telegram_message_id": "",
+      "question_text": "Hello",
+      "is_health_topic": false,
+      "relevance_score": 0,
+      "matched_knowledge_id": null,
+      "status": "REJECTED_NON_HEALTH",
+      "bot_response": "🩺 *TeleHealth AI Assistant* — Specialized Healthcare Solution\n━━━━━━━━━━━━━━━━━━━━━━━━━━\nSorry, **TeleHealth** is an assistant exclusively dedicated to **healthcare and clinical medical inquiries**.\n\nOur service is designed to answer questions regarding:\n• 🌡️ *Disease symptoms, first aid & self-care*\n• 🩺 *Clinical condition explanations & medication guides*\n• 💊 *Preventive healthcare & healthy lifestyle guidelines*\n• 👨‍⚕️ *Direct consultation with on-call physicians*\n\nPlease ask a health-related question (e.g. \"How to relieve headache and fever?\") or choose a topic from the menu. 🌿",
+      "created_at": "2026-10-08T11:27:14.842Z",
+      "updated_at": "2026-10-08T11:27:14.842Z"
+    },
+    {
+      "id": 185,
+      "user_id": 2,
+      "telegram_chat_id": "test-session-user-99",
+      "telegram_message_id": "",
+      "question_text": "how to treat flu and common cold symptoms",
+      "is_health_topic": true,
+      "relevance_score": 0.67,
+      "matched_knowledge_id": 1,
+      "status": "ANSWERED_BY_KB",
+      "bot_response": "💡 *[VERIFIED MEDICAL INFORMATION]*\n📂 *Category:* _Respiratory & Influenza_\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n🩺 *Early Symptom Management of Common Cold and Flu in Adults*\n\n📋 *Clinical Summary:*\nFor mild early flu symptoms, self-care measures include optimal physical rest, adequate hydration, and keeping the respiratory airway warm.\n\n📌 *Key Management Points:*\n• Get adequate bed rest and sleep (7-9 hours daily) to help immune function.\n• Drink plenty of warm fluids (at least 2-2.5 liters daily) to loosen mucus and prevent dehydration.\n• Eat nutrient-dense warm soups, fresh fruits, and vitamin C supplements.\n• Use warm steam inhalation or saline nasal rinses for nasal congestion.\n\n🚨 *When to See a Doctor / Red Flags:*\nSeek immediate medical attention if fever exceeds 38.5°C for over 3 days, severe shortness of breath or chest pain occurs, thick greenish cough develops, or symptoms worsen after 7 days.\n\n📚 *Source Reference:*\n_Management of Common Cold and Upper Respiratory Infections (2024) - Indonesian Journal of Internal Medicine / PAPDI_\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n⚕️ _Note: This information is sourced from verified medical guidelines and does not replace in-person consultation with a qualified doctor._",
+      "created_at": "2026-10-08T11:27:14.849Z",
+      "updated_at": "2026-10-08T11:27:14.849Z"
+    },
+    {
+      "id": 186,
+      "user_id": 2,
+      "telegram_chat_id": "test-session-user-99",
+      "telegram_message_id": "",
+      "question_text": "What should I do for headache?",
+      "is_health_topic": true,
+      "relevance_score": 1,
+      "matched_knowledge_id": 3,
+      "status": "ANSWERED_BY_KB",
+      "bot_response": "💡 *[VERIFIED MEDICAL INFORMATION]*\n📂 *Category:* _Headache & Neurology_\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n🩺 *First-Line Management for Tension Headaches and Migraine*\n\n📋 *Clinical Summary:*\nTension-type headaches are commonly triggered by physical or emotional stress, eye fatigue from screens, poor sleep, dehydration, or stiff neck posture.\n\n📌 *Key Management Points:*\n• Rest your eyes and avoid screen time (gadget exposure) for at least 30 minutes.\n• Perform gentle relaxation and acupressure on temples, back of neck, and shoulders.\n• Drink a glass of warm water to ensure hydration.\n• Perform gentle neck muscle stretching and practice regular deep breathing.\n\n🚨 *When to See a Doctor / Red Flags:*\nGo to the Emergency Department or neurologist immediately if headache starts suddenly and severely (thunderclap headache), accompanied by blurred vision, weakness on one side of body, slurred speech, or following head trauma.\n\n📚 *Source Reference:*\n_Diagnosis and Management of Tension-Type Headache and Migraine (2024) - Journal of Neurology & Indonesian Neurological Association (PERDOSI)_\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n⚕️ _Note: This information is sourced from verified medical guidelines and does not replace in-person consultation with a qualified doctor._",
+      "created_at": "2026-10-08T11:27:14.855Z",
+      "updated_at": "2026-10-08T11:27:14.855Z"
+    },
+    {
+      "id": 187,
+      "user_id": 2,
+      "telegram_chat_id": "test-session-user-99",
+      "telegram_message_id": "",
+      "question_text": "Halo dokter, saya sakit perut",
+      "is_health_topic": true,
+      "relevance_score": 0.34,
+      "matched_knowledge_id": null,
+      "status": "FORWARDED_TO_DOCTOR",
+      "bot_response": "🟢 *[#DQ-1] Konsultasi Diteruskan ke Dokter Jaga*\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n📝 *Pertanyaan Pasien:* _\"Halo dokter, saya sakit perut\"_\n\n⏳ *Status:* Menunggu Respon Dokter Jaga\n⏱️ *Estimasi Respon:* 5 - 15 Menit\n\n👨‍⚕️ Pertanyaan Anda belum ada di arsip pustaka tervalidasi dan telah kami teruskan ke *Antrian Dokter (Doctor Queue)*.\n\nDokter jaga kami akan segera meninjau keluhan Anda dan memberikan anjuran medis melalui chat ini.",
+      "created_at": "2026-10-08T11:27:14.862Z",
+      "updated_at": "2026-10-08T11:27:14.868Z"
+    },
+    {
+      "id": 188,
+      "user_id": 1,
+      "telegram_chat_id": "test-device-en",
+      "telegram_message_id": "",
+      "question_text": "How can I treat mild fever and body chills at home?",
+      "is_health_topic": true,
+      "relevance_score": 0.64,
+      "matched_knowledge_id": 2,
+      "status": "ANSWERED_BY_KB",
+      "bot_response": "💡 *[VERIFIED MEDICAL INFORMATION]*\n📂 *Category:* _Fever & General Infections_\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n🩺 *Causes and First Aid for Fever in Adults*\n\n📋 *Clinical Summary:*\nFever is a physiological immune response fighting off viral or bacterial infection. Normal body temperature ranges between 36.5°C - 37.5°C.\n\n📌 *Key Management Points:*\n• Measure temperature periodically using a calibrated medical thermometer (fever is > 38°C).\n• Apply lukewarm water compress (not ice water) to forehead, armpits, or groin folds.\n• Maintain adequate fluid intake to avoid dehydration from body heat loss.\n• Wear loose, breathable cotton clothing in a well-ventilated room.\n• Take antipyretic medication (such as Paracetamol) following package dosages if feeling uncomfortable.\n\n🚨 *When to See a Doctor / Red Flags:*\nVisit a healthcare facility if temperature exceeds 39°C, fever persists beyond 3 days, red rash appears, stiff neck, seizures, continuous vomiting, or reduced consciousness occurs.\n\n📚 *Source Reference:*\n_Clinical Practice Guideline for Evaluation of Fever in Adults (2023) - WHO Health Guidelines & Kemenkes RI_\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n⚕️ _Note: This information is sourced from verified medical guidelines and does not replace in-person consultation with a qualified doctor._",
+      "created_at": "2026-10-08T11:27:27.572Z",
+      "updated_at": "2026-10-08T11:27:27.572Z"
+    },
+    {
+      "id": 189,
+      "user_id": 1,
+      "telegram_chat_id": "test-device-en",
+      "telegram_message_id": "",
+      "question_text": "How to write a Python script for database query?",
+      "is_health_topic": false,
+      "relevance_score": 0,
+      "matched_knowledge_id": null,
+      "status": "REJECTED_NON_HEALTH",
+      "bot_response": "🩺 *TeleHealth AI Assistant* — Specialized Healthcare Solution\n━━━━━━━━━━━━━━━━━━━━━━━━━━\nSorry, **TeleHealth** is an assistant exclusively dedicated to **healthcare and clinical medical inquiries**.\n\nOur service is designed to answer questions regarding:\n• 🌡️ *Disease symptoms, first aid & self-care*\n• 🩺 *Clinical condition explanations & medication guides*\n• 💊 *Preventive healthcare & healthy lifestyle guidelines*\n• 👨‍⚕️ *Direct consultation with on-call physicians*\n\nPlease ask a health-related question (e.g. \"How to relieve headache and fever?\") or choose a topic from the menu. 🌿",
+      "created_at": "2026-10-08T11:27:27.591Z",
+      "updated_at": "2026-10-08T11:27:27.591Z"
+    },
+    {
+      "id": 190,
+      "user_id": 2,
+      "telegram_chat_id": "test-session-user-99",
+      "telegram_message_id": "",
+      "question_text": "Hello",
+      "is_health_topic": false,
+      "relevance_score": 0,
+      "matched_knowledge_id": null,
+      "status": "REJECTED_NON_HEALTH",
+      "bot_response": "🩺 *TeleHealth AI Assistant* — Specialized Healthcare Solution\n━━━━━━━━━━━━━━━━━━━━━━━━━━\nSorry, **TeleHealth** is an assistant exclusively dedicated to **healthcare and clinical medical inquiries**.\n\nOur service is designed to answer questions regarding:\n• 🌡️ *Disease symptoms, first aid & self-care*\n• 🩺 *Clinical condition explanations & medication guides*\n• 💊 *Preventive healthcare & healthy lifestyle guidelines*\n• 👨‍⚕️ *Direct consultation with on-call physicians*\n\nPlease ask a health-related question (e.g. \"How to relieve headache and fever?\") or choose a topic from the menu. 🌿",
+      "created_at": "2026-10-08T11:27:27.602Z",
+      "updated_at": "2026-10-08T11:27:27.602Z"
+    },
+    {
+      "id": 191,
+      "user_id": 2,
+      "telegram_chat_id": "test-session-user-99",
+      "telegram_message_id": "",
+      "question_text": "how to treat flu and common cold symptoms",
+      "is_health_topic": true,
+      "relevance_score": 0.67,
+      "matched_knowledge_id": 1,
+      "status": "ANSWERED_BY_KB",
+      "bot_response": "💡 *[VERIFIED MEDICAL INFORMATION]*\n📂 *Category:* _Respiratory & Influenza_\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n🩺 *Early Symptom Management of Common Cold and Flu in Adults*\n\n📋 *Clinical Summary:*\nFor mild early flu symptoms, self-care measures include optimal physical rest, adequate hydration, and keeping the respiratory airway warm.\n\n📌 *Key Management Points:*\n• Get adequate bed rest and sleep (7-9 hours daily) to help immune function.\n• Drink plenty of warm fluids (at least 2-2.5 liters daily) to loosen mucus and prevent dehydration.\n• Eat nutrient-dense warm soups, fresh fruits, and vitamin C supplements.\n• Use warm steam inhalation or saline nasal rinses for nasal congestion.\n\n🚨 *When to See a Doctor / Red Flags:*\nSeek immediate medical attention if fever exceeds 38.5°C for over 3 days, severe shortness of breath or chest pain occurs, thick greenish cough develops, or symptoms worsen after 7 days.\n\n📚 *Source Reference:*\n_Management of Common Cold and Upper Respiratory Infections (2024) - Indonesian Journal of Internal Medicine / PAPDI_\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n⚕️ _Note: This information is sourced from verified medical guidelines and does not replace in-person consultation with a qualified doctor._",
+      "created_at": "2026-10-08T11:27:27.608Z",
+      "updated_at": "2026-10-08T11:27:27.608Z"
+    },
+    {
+      "id": 192,
+      "user_id": 2,
+      "telegram_chat_id": "test-session-user-99",
+      "telegram_message_id": "",
+      "question_text": "What should I do for headache?",
+      "is_health_topic": true,
+      "relevance_score": 1,
+      "matched_knowledge_id": 3,
+      "status": "ANSWERED_BY_KB",
+      "bot_response": "💡 *[VERIFIED MEDICAL INFORMATION]*\n📂 *Category:* _Headache & Neurology_\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n🩺 *First-Line Management for Tension Headaches and Migraine*\n\n📋 *Clinical Summary:*\nTension-type headaches are commonly triggered by physical or emotional stress, eye fatigue from screens, poor sleep, dehydration, or stiff neck posture.\n\n📌 *Key Management Points:*\n• Rest your eyes and avoid screen time (gadget exposure) for at least 30 minutes.\n• Perform gentle relaxation and acupressure on temples, back of neck, and shoulders.\n• Drink a glass of warm water to ensure hydration.\n• Perform gentle neck muscle stretching and practice regular deep breathing.\n\n🚨 *When to See a Doctor / Red Flags:*\nGo to the Emergency Department or neurologist immediately if headache starts suddenly and severely (thunderclap headache), accompanied by blurred vision, weakness on one side of body, slurred speech, or following head trauma.\n\n📚 *Source Reference:*\n_Diagnosis and Management of Tension-Type Headache and Migraine (2024) - Journal of Neurology & Indonesian Neurological Association (PERDOSI)_\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n⚕️ _Note: This information is sourced from verified medical guidelines and does not replace in-person consultation with a qualified doctor._",
+      "created_at": "2026-10-08T11:27:27.614Z",
+      "updated_at": "2026-10-08T11:27:27.614Z"
+    },
+    {
+      "id": 193,
+      "user_id": 2,
+      "telegram_chat_id": "test-session-user-99",
+      "telegram_message_id": "",
+      "question_text": "Halo dokter, saya sakit perut",
+      "is_health_topic": true,
+      "relevance_score": 0.34,
+      "matched_knowledge_id": null,
+      "status": "FORWARDED_TO_DOCTOR",
+      "bot_response": "🟢 *[#DQ-1] Konsultasi Diteruskan ke Dokter Jaga*\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n📝 *Pertanyaan Pasien:* _\"Halo dokter, saya sakit perut\"_\n\n⏳ *Status:* Menunggu Respon Dokter Jaga\n⏱️ *Estimasi Respon:* 5 - 15 Menit\n\n👨‍⚕️ Pertanyaan Anda belum ada di arsip pustaka tervalidasi dan telah kami teruskan ke *Antrian Dokter (Doctor Queue)*.\n\nDokter jaga kami akan segera meninjau keluhan Anda dan memberikan anjuran medis melalui chat ini.",
+      "created_at": "2026-10-08T11:27:27.620Z",
+      "updated_at": "2026-10-08T11:27:27.626Z"
     }
   ],
+  "doctor_questions": [],
   "doctor_responses": [
     {
       "id": 1,
@@ -2799,25 +3035,14 @@
     {
       "id": 1,
       "candidate_id": null,
-      "knowledge_id": 1,
-      "admin_user": "Admin Medis TeleHealth",
-      "action": "VALIDATED",
-      "previous_status": "PENDING",
-      "new_status": "ACTIVE",
-      "notes": "Validasi panduan tata laksana flu awal dari Journal PAPDI 2024.",
-      "created_at": "2024-01-15T10:00:00.000Z"
-    },
-    {
-      "id": 2,
-      "candidate_id": null,
       "knowledge_id": null,
       "admin_user": "Super Administrator",
       "action": "DATABASE_RESET_DEFAULT",
       "previous_status": "CUSTOM",
       "new_status": "DEFAULT_BASELINE",
       "notes": "Superadmin mereset Knowledge Base kembali ke pedoman klinis standar (PAPDI/WHO/Kemenkes).",
-      "created_at": "2026-10-08T09:47:21.111Z",
-      "updated_at": "2026-10-08T09:47:21.111Z"
+      "created_at": "2026-10-08T11:27:27.645Z",
+      "updated_at": "2026-10-08T11:27:27.645Z"
     }
   ]
 }
