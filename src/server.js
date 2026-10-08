@@ -60,10 +60,11 @@ app.use((err, req, res, next) => {
 
 // Start Server only if executed directly
 if (require.main === module) {
-    app.listen(PORT, () => {
+    const HOST = process.env.HOST || '0.0.0.0';
+    app.listen(PORT, HOST, () => {
         console.log(`=======================================================`);
         console.log(`🏥 TeleHealth Medical Chatbot & Knowledge Server Active`);
-        console.log(`🌐 Web Administrator: http://localhost:${PORT}`);
+        console.log(`🌐 Web Administrator: http://localhost:${PORT} (Host: ${HOST})`);
         console.log(`🤖 Telegram Bot: ${telegramBot.isEnabled ? 'Active (Polling)' : 'Simulator Mode Ready'}`);
         console.log(`=======================================================`);
     });

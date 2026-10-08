@@ -8,45 +8,34 @@ TeleHealth menerapkan arsitektur **Knowledge Acquisition & Administrator Validat
 
 ---
 
-## 🌟 Fitur Utama & Pembaruan Sistem
+## 🌟 Fitur Utama & Pembaruan Sistem (v1.1.0)
 
-1. **Integrasi Bot Telegram Resmi**:
-   - Pengguna berinteraksi langsung melalui aplikasi Telegram.
+1. **Integrasi Bot Telegram Resmi & Multi-Device Cross-Access**:
+   - Pengguna berinteraksi langsung melalui aplikasi Telegram dari perangkat manapun (HP Android/iOS, Desktop, Tablet, Web).
    - Menjawab pertanyaan seputar keluhan kesehatan, gejala penyakit, pertolongan pertama, dan pencegahan.
-   - Dilengkapi **Health Guardrail Classifier** yang menolak pertanyaan di luar topik kesehatan secara sopan (politik, coding, perbaikan teknis, hiburan, dll).
-   - Format respon terstruktur: **Jawaban Singkat**, **Hal Penting**, **Kapan Perlu ke Dokter**, **Sumber Terpercaya**, dan **Medical Disclaimer**.
+   - Dilengkapi **Health Guardrail Classifier** yang menolak pertanyaan di luar topik kesehatan secara sopan.
+   - **Auto-Recovery Polling Conflict (409)** dan dukungan **Webhook Receiver** (`POST /api/chat/telegram-webhook`) untuk kemudahan hosting di Railway/Cloud.
 
-2. **Input & Import Data Pengetahuan dari File Eksternal (PDF, DOCX, TXT)**:
-   - **Upload Dokumen**: Mendukung file pedoman klinis, SOP rumah sakit, artikel jurnal, atau pedoman kesehatan dalam format `.pdf`, `.docx`, `.doc`, `.txt`, dan `.md`.
-   - **Smart Medical Heuristic Extractor**: Mengekstrak otomatis judul, kategori medis, penerbit/organisasi, kata kunci pencarian bot, ringkasan jawaban klinis, poin-poin penanganan, dan tanda bahaya (red flags).
-   - **Pilihan Jalur Validasi**:
-     - *Simpan Langsung ke Knowledge Base Tervalidasi (`ACTIVE`)*: Untuk dokumen resmi yang sudah tervalidasi sehingga chatbot Telegram langsung dapat menggunakannya.
-     - *Kirim ke Antrian Review Candidates (`PENDING`)*: Untuk ditinjau terlebih dahulu oleh tim dokter/administrator.
-   - **Batch Import**: Kemampuan mengunggah banyak file dokumen sekaligus dengan 1-klik proses.
-   - **Form Input Manual**: Formulir terstruktur untuk input pedoman medis secara manual.
+2. **Dukungan Akses Multi-Bahasa & Respon Adaptif (Multilingual Engine)**:
+   - **Deteksi Bahasa Otomatis**: Mendeteksi bahasa pengguna secara instan (**English**, **Bahasa Indonesia**, **Basa Jawa**, **Basa Sunda**).
+   - **Cross-Lingual Medical Concept Bridge**: Pertanyaan dalam bahasa Inggris atau bahasa daerah secara cerdas dicocokkan dengan basis pengetahuan medis.
+   - **Model Response Sesuai Bahasa Pengguna**: Format jawaban bot (Ringkasan Klinis, Poin Penanganan, Kapan ke Dokter, Disclaimer) otomatis disajikan dalam bahasa yang digunakan pengguna.
+   - **Language Switcher Web Admin**: Toggle bahasa (🇮🇩 ID / 🇬🇧 EN) di dashboard admin.
 
-3. **Fallback ke Dokter (Doctor Queue)**:
-   - Jika pertanyaan pengguna belum tersedia di Knowledge Base (skor relevansi < 58%), sistem tidak mengarang jawaban.
-   - Pertanyaan otomatis masuk ke **Antrian Dokter** (`WAITING`).
-   - Dokter memberikan respon klinis dan saran medis melalui dashboard Web Admin.
-   - Jawaban dokter langsung diteruskan ke Telegram pengguna.
+3. **CRUD Kategori Medis Lengkap (Create, Read, Update, Delete)**:
+   - Menu manajemen taksonomi kategori kesehatan dengan penambahan, pengeditan slug/icon, dan penghapusan aman (safe deletion & reassign).
 
-4. **Knowledge Acquisition & Administrator Validation**:
-   - Setiap respon dokter otomatis menjadi **Knowledge Candidate** berstatus `PENDING`.
-   - Administrator mereview kandidat:
-     - **VALIDATE**: Dipromosikan ke Knowledge Base aktif (`ACTIVE`) sehingga bot dapat menjawab pertanyaan serupa secara mandiri.
-     - **REJECT**: Ditolak dengan alasan wajib (dicatat dalam audit trail).
-   - Semua riwayat terekam dalam **Validation Logs**.
+4. **Reset Pengetahuan Terproteksi Password Super Admin**:
+   - Fitur keamanan tinggi untuk mereset Knowledge Base ke **Standar Pedoman Klinis (PAPDI/WHO/Kemenkes)** atau mengosongkan arsip data dengan verifikasi password Super Administrator.
 
-5. **Web Administrator Dashboard**:
-   - **Dashboard Overview**: Ringkasan KPI, grafik distribusi kategori medis, grafik resolusi pertanyaan, dan log audit.
-   - **Knowledge Base**: Manajemen data, pencarian kata kunci, filter kategori, aktivasi/deaktivasi status.
-   - **Knowledge Validator**: Antarmuka peninjauan kandidat pengetahuan dari dokter & literatur.
-   - **Doctor Questions**: Antrian pertanyaan pengguna Telegram yang menunggu jawaban dokter.
-   - **Input & Import Dokumen**: Antarmuka komprehensif untuk upload file PDF/DOCX dan input jurnal.
-   - **Validation Logs**: Jejak audit kronologis setiap aksi persetujuan dan penolakan.
-   - **Kategori & Sumber**: Manajemen taksonomi medis dan sumber terpercaya.
-   - **Bot Telegram & Settings**: Status koneksi bot Telegram, diagnosa sistem, dan integrasi n8n.
+5. **Input & Import Data Pengetahuan dari File Eksternal (PDF, DOCX, TXT)**:
+   - **Upload Dokumen**: Mendukung file pedoman klinis, SOP rumah sakit, artikel jurnal dalam format `.pdf`, `.docx`, `.doc`, `.txt`, dan `.md`.
+   - **Smart Medical Heuristic Extractor**: Ekstraksi otomatis judul, kategori medis, penerbit, kata kunci, ringkasan jawaban, dan tanda bahaya.
+   - **Batch Import**: Unggah hingga 10 dokumen sekaligus dengan 1-klik proses.
+
+6. **Fallback ke Dokter (Doctor Queue) & Validasi Admin**:
+   - Pertanyaan yang belum ada di Knowledge Base otomatis diteruskan ke antrian dokter.
+   - Dokter menjawab melalui Web Admin, dan jawaban otomatis menjadi Knowledge Candidate (PENDING) untuk divalidasi administrator.
 
 ---
 

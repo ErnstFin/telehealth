@@ -11,6 +11,7 @@ const HealthValidator = require('./healthValidator');
 const KnowledgeRetriever = require('./knowledgeRetriever');
 const ResponseGenerator = require('./responseGenerator');
 const DoctorService = require('./doctorService');
+const LanguageService = require('./languageService');
 
 // Persistent Reply Keyboard at the bottom of the chat
 const MAIN_REPLY_KEYBOARD = {
@@ -138,8 +139,23 @@ class TelegramBotService {
     registerHandlers() {
         if (!this.bot) return;
 
-        this.bot.on('polling_error', (err) => {
-            console.warn('[Telegram Polling Warning]:', err.message);
+        this.bot.on('polling_error', async (err) => {
+            const msg = err.message || '';
+            console.warn('[Telegram Polling Warning]:', msg);
+            if (msg.includes('409') || msg.includes('Conflict')) {
+                console.warn('[Telegram Bot Notice] Polling conflict detected (another instance or session is running). Auto-reconnecting in 5 seconds...');
+                try {
+                    await this.bot.stopPolling();
+                    setTimeout(async () => {
+                        if (this.bot && this.isEnabled) {
+                            try {
+                                await this.bot.startPolling({ restart: true });
+                                console.log('[Telegram Bot] Resumed polling successfully.');
+                            } catch (e) {}
+                        }
+                    }, 5000);
+                } catch (e) {}
+            }
         });
 
         // 1. /start and /menu commands
@@ -659,6 +675,7 @@ class TelegramBotService {
     async handleIncomingMessage({ telegramChatId, telegramUserId, username, firstName, lastName, messageId, text }) {
         const cleanText = (text || '').trim();
         const chatId = String(telegramChatId || 'sim-user-01');
+        const userLang = LanguageService.detectLanguage(cleanText);
 
         // 1. Ensure user exists in database
         let user = db.find('users', u => String(u.telegram_id) === String(telegramUserId || chatId))[0];
@@ -672,16 +689,16 @@ class TelegramBotService {
             });
         }
 
-        // 2. FIRST: Search Active Knowledge Base
-        // If an approved knowledge item exists for this query (e.g. valid medical or approved domain guide), answer immediately
+        // 2. FIRST: Search Active Knowledge Base (with multi-language synonym bridging)
         const searchResult = await KnowledgeRetriever.search(cleanText, 0.58);
 
-        // 3. IF KNOWLEDGE FOUND IN KB -> Answer directly from Knowledge Base
+        // 3. IF KNOWLEDGE FOUND IN KB -> Answer directly from Knowledge Base in user's language
         if (searchResult.found && searchResult.knowledge) {
             const formattedResponse = ResponseGenerator.formatKnowledgeResponse(
                 searchResult.knowledge,
                 searchResult.source,
-                searchResult.category
+                searchResult.category,
+                userLang
             );
 
             const qRecord = db.insert('questions', {
@@ -699,6 +716,7 @@ class TelegramBotService {
             return {
                 status: 'ANSWERED_BY_KB',
                 isHealth: true,
+                language: userLang,
                 questionId: qRecord.id,
                 relevanceScore: searchResult.score,
                 matchedKnowledge: searchResult.knowledge,
@@ -713,8 +731,8 @@ class TelegramBotService {
         const topicValidation = HealthValidator.validateTopic(cleanText);
 
         if (!topicValidation.isHealth) {
-            // Out of scope (non-health) and not in Knowledge Base -> Reject politely with scope notice
-            const rejectedResponse = HealthValidator.getNonHealthResponse();
+            // Out of scope (non-health) and not in Knowledge Base -> Reject politely in user's language
+            const rejectedResponse = HealthValidator.getNonHealthResponse(userLang);
             const qRecord = db.insert('questions', {
                 user_id: user.id,
                 telegram_chat_id: chatId,
@@ -730,6 +748,7 @@ class TelegramBotService {
             return {
                 status: 'REJECTED_NON_HEALTH',
                 isHealth: false,
+                language: userLang,
                 questionId: qRecord.id,
                 relevanceScore: 0,
                 responseMessage: rejectedResponse,
@@ -758,18 +777,78 @@ class TelegramBotService {
             questionText: cleanText
         });
 
-        const fallbackNotice = ResponseGenerator.formatDoctorFallbackNotice(doctorQuestion.id, cleanText);
+        const fallbackNotice = ResponseGenerator.formatDoctorFallbackNotice(doctorQuestion.id, cleanText, userLang);
         db.update('questions', qRecord.id, { bot_response: fallbackNotice });
 
         return {
             status: 'FORWARDED_TO_DOCTOR',
             isHealth: true,
+            language: userLang,
             questionId: qRecord.id,
             doctorQuestionId: doctorQuestion.id,
             relevanceScore: searchResult.score || 0.0,
             responseMessage: fallbackNotice,
             doctorQueued: true
         };
+    }
+
+    /**
+     * Handles webhook update payload from Telegram API
+     */
+    async processWebhookUpdate(update) {
+        if (!update) return;
+        if (update.message && update.message.text) {
+            const msg = update.message;
+            const text = msg.text.trim();
+            if (text.startsWith('/start') || text.startsWith('/menu')) {
+                await this.sendWelcomeMenu(msg.chat.id, msg.from && msg.from.first_name);
+            } else if (text.startsWith('/help')) {
+                await this.sendHelpMessage(msg.chat.id);
+            } else if (text.startsWith('/gejala')) {
+                await this.sendGejalaMenu(msg.chat.id);
+            } else if (text.startsWith('/dokter')) {
+                await this.sendDoctorPrompt(msg.chat.id);
+            } else if (text.startsWith('/status')) {
+                await this.sendStatusMessage(msg.chat.id, msg.from && msg.from.id);
+            } else {
+                await this.processUserQuestion(msg.chat.id, msg.from && msg.from.id, msg.from || {}, text, msg.message_id);
+            }
+        } else if (update.callback_query) {
+            const query = update.callback_query;
+            const data = query.data || '';
+            const chatId = query.message ? query.message.chat.id : (query.from ? query.from.id : null);
+            const userId = query.from ? query.from.id : null;
+            const messageId = query.message ? query.message.message_id : null;
+
+            if (this.bot) {
+                try {
+                    await this.bot.answerCallbackQuery(query.id);
+                } catch (e) {}
+            }
+
+            if (!chatId) return;
+            if (data === 'menu_main') {
+                await this.sendWelcomeMenu(chatId, (query.from && query.from.first_name) || 'Pengguna', messageId);
+            } else if (data === 'menu_gejala') {
+                await this.sendGejalaMenu(chatId, messageId);
+            } else if (data === 'menu_obat') {
+                await this.sendObatMenu(chatId, messageId);
+            } else if (data === 'menu_darurat') {
+                await this.sendEmergencyGuide(chatId, messageId);
+            } else if (data === 'menu_help') {
+                await this.sendHelpMessage(chatId, messageId);
+            } else if (data === 'menu_status') {
+                await this.sendStatusMessage(chatId, userId, messageId);
+            } else if (data === 'menu_dokter') {
+                await this.sendDoctorPrompt(chatId);
+            } else if (data.startsWith('forward_doctor:')) {
+                const qId = data.replace('forward_doctor:', '');
+                await this.handleForwardQuestionToDoctor(chatId, userId, query.from, qId);
+            } else if (data.startsWith('query_topic:')) {
+                const topic = data.replace('query_topic:', '');
+                await this.processUserQuestion(chatId, userId, query.from, topic);
+            }
+        }
     }
 
     /**
@@ -786,7 +865,6 @@ class TelegramBotService {
                 await this.bot.sendMessage(chatId, text, sendOptions);
                 return true;
             } catch (err) {
-                // If Markdown fails, retry with plain text while preserving keyboards
                 try {
                     delete sendOptions.parse_mode;
                     await this.bot.sendMessage(chatId, text, sendOptions);

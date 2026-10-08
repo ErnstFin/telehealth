@@ -378,6 +378,40 @@ class DatabaseService {
             is_trusted: data.is_trusted !== undefined ? data.is_trusted : true
         });
     }
+
+    resetKnowledgeStore(mode = 'DEFAULT', adminUser = 'Super Administrator') {
+        const now = new Date().toISOString();
+        if (mode === 'CLEAR_ALL') {
+            const prevCount = (this.memoryStore.knowledge || []).length;
+            this.memoryStore.knowledge = [];
+            this.memoryStore.knowledge_candidates = [];
+            this.insert('validation_logs', {
+                candidate_id: null,
+                knowledge_id: null,
+                admin_user: adminUser,
+                action: 'DATABASE_RESET_CLEARED',
+                previous_status: `TOTAL_${prevCount}`,
+                new_status: 'EMPTY',
+                notes: 'Superadmin mereset & mengosongkan seluruh Knowledge Base dan Candidates.'
+            });
+            this.saveLocalStore();
+            return { mode: 'CLEAR_ALL', count: 0, message: 'Seluruh data knowledge base berhasil dikosongkan.' };
+        } else {
+            // Reset to DEFAULT medical baseline
+            this.seedInitialData();
+            this.insert('validation_logs', {
+                candidate_id: null,
+                knowledge_id: null,
+                admin_user: adminUser,
+                action: 'DATABASE_RESET_DEFAULT',
+                previous_status: 'CUSTOM',
+                new_status: 'DEFAULT_BASELINE',
+                notes: 'Superadmin mereset Knowledge Base kembali ke pedoman klinis standar (PAPDI/WHO/Kemenkes).'
+            });
+            this.saveLocalStore();
+            return { mode: 'DEFAULT', count: this.memoryStore.knowledge.length, message: 'Knowledge Base berhasil direset ke standar pedoman klinis awal.' };
+        }
+    }
 }
 
 module.exports = new DatabaseService();

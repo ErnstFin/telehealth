@@ -1,3 +1,4 @@
+process.env.NODE_ENV = 'test';
 const telegramBot = require('../src/services/telegramBot');
 const db = require('../src/db');
 

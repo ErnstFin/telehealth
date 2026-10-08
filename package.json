@@ -1,13 +1,13 @@
 {
   "name": "telehealth-system",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "TeleHealth - Chatbot Kesehatan & Knowledge Acquisition System with Telegram, n8n, and Admin Dashboard",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
     "n8n": "npx n8n",
-    "test": "node test/api_test.js && node test/document_import_test.js"
+    "test": "node test/feature_upgrade_test.js && node test/api_test.js && node test/document_import_test.js"
   },
   "keywords": [
     "telehealth",

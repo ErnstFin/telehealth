@@ -83,9 +83,13 @@
                     <h2 class="topbar-title" id="page-current-title">Dashboard Overview</h2>
                 </div>
                 <div class="topbar-actions">
+                    <div class="lang-switch-wrapper" style="display: flex; align-items: center; gap: 6px; margin-right: 6px;">
+                        <button type="button" class="btn btn-xs btn-outline-primary active" id="btn-lang-id" onclick="App.setLanguage('id')" title="Bahasa Indonesia">🇮🇩 ID</button>
+                        <button type="button" class="btn btn-xs btn-outline-primary" id="btn-lang-en" onclick="App.setLanguage('en')" title="English">🇬🇧 EN</button>
+                    </div>
                     <div class="tg-live-indicator" id="topbar-tg-indicator" title="Integrasi bot Telegram resmi aktif untuk pengguna">
                         <span class="tg-dot"></span>
-                        <span><i class="fa-brands fa-telegram"></i> Bot Telegram Terhubung</span>
+                        <span id="topbar-tg-text"><i class="fa-brands fa-telegram"></i> Bot Telegram Terhubung</span>
                     </div>
                     <button class="btn btn-sm btn-outline-primary" id="btn-refresh-data" title="Muat ulang data">
                         <i class="fa-solid fa-rotate"></i> Refresh
@@ -256,6 +260,9 @@
                             <p>Hanya knowledge berstatus <strong>VALID / ACTIVE</strong> yang digunakan oleh chatbot untuk menjawab pertanyaan Telegram.</p>
                         </div>
                         <div class="page-header-actions" style="display: flex; gap: 10px; align-items: center;">
+                            <button class="btn btn-outline-danger" onclick="App.openResetModal()" title="Reset Knowledge Base dengan Password SuperAdmin">
+                                <i class="fa-solid fa-triangle-exclamation"></i> Reset Pengetahuan
+                            </button>
                             <button class="btn btn-outline-primary" onclick="App.switchTab('journal-input')" title="Unggah File Dokumen / Batch Import">
                                 <i class="fa-solid fa-file-arrow-up"></i> Import Dokumen (PDF/DOCX)
                             </button>
@@ -714,10 +721,13 @@
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 24px;">
                         <!-- Categories Card -->
                         <div class="app-card">
-                            <div class="app-card-header">
+                            <div class="app-card-header" style="display: flex; justify-content: space-between; align-items: center;">
                                 <div class="app-card-title">
                                     <i class="fa-solid fa-tags"></i> Kategori Kesehatan
                                 </div>
+                                <button class="btn btn-sm btn-primary" onclick="App.openCategoryModal()">
+                                    <i class="fa-solid fa-plus"></i> Tambah Kategori
+                                </button>
                             </div>
                             <div class="table-responsive">
                                 <table class="data-table">
@@ -726,10 +736,11 @@
                                             <th>Nama Kategori</th>
                                             <th>Slug</th>
                                             <th>Deskripsi</th>
+                                            <th style="width: 100px; text-align: center;">Aksi</th>
                                         </tr>
                                     </thead>
                                     <tbody id="categories-table-body">
-                                        <tr><td colspan="3" style="text-align: center; padding: 20px;">Memuat kategori...</td></tr>
+                                        <tr><td colspan="4" style="text-align: center; padding: 20px;">Memuat kategori...</td></tr>
                                     </tbody>
                                 </table>
                             </div>
@@ -806,6 +817,24 @@
                             </div>
                             <div class="app-card-body" id="system-diagnostic-info">
                                 <p>Memuat status diagnostik...</p>
+                            </div>
+                        </div>
+
+                        <!-- Danger Zone: Reset Knowledge Base -->
+                        <div class="app-card" style="border: 1px solid #fee2e2; background: #fffaf0;">
+                            <div class="app-card-header" style="border-bottom-color: #fee2e2;">
+                                <div class="app-card-title" style="color: var(--danger);">
+                                    <i class="fa-solid fa-triangle-exclamation"></i> Zona Bahaya: Reset Knowledge Base
+                                </div>
+                                <span class="badge badge-danger">SUPER ADMIN ONLY</span>
+                            </div>
+                            <div class="app-card-body">
+                                <p style="font-size: 13.5px; color: #7f1d1d; line-height: 1.5; margin-bottom: 16px;">
+                                    Fitur ini memungkinkan Super Administrator untuk mereset seluruh Knowledge Base kembali ke pedoman klinis standar (PAPDI/WHO/Kemenkes) atau mengosongkan arsip data.
+                                </p>
+                                <button class="btn btn-danger" onclick="App.openResetModal()">
+                                    <i class="fa-solid fa-rotate-left"></i> Buka Form Reset Knowledge Base
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -988,6 +1017,101 @@
                     <button type="button" class="btn btn-secondary" onclick="App.closeModal('modal-reject-candidate')">Batal</button>
                     <button type="submit" class="btn btn-danger">
                         <i class="fa-solid fa-ban"></i> Konfirmasi Penolakan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Add / Edit Category -->
+    <div class="modal-overlay" id="modal-category">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modal-category-title">Tambah Kategori Medis</h3>
+                <button class="modal-close" onclick="App.closeModal('modal-category')">&times;</button>
+            </div>
+            <form id="form-category" onsubmit="App.handleCategorySubmit(event)">
+                <input type="hidden" id="cat-form-id">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="form-label">Nama Kategori <span class="req">*</span></label>
+                        <input type="text" class="form-control" id="cat-form-name" required placeholder="Contoh: Kesehatan Mental & Psikologi">
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div class="form-group">
+                            <label class="form-label">Slug (Identifier)</label>
+                            <input type="text" class="form-control" id="cat-form-slug" placeholder="Otomatis terisi jika kosong">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Icon Kategori</label>
+                            <select class="form-control" id="cat-form-icon">
+                                <option value="stethoscope">🩺 Stethoscope</option>
+                                <option value="wind">💨 Wind / Pernapasan</option>
+                                <option value="thermometer">🌡️ Thermometer / Demam</option>
+                                <option value="brain">🧠 Brain / Neurologi</option>
+                                <option value="heart-pulse">❤️ Heart / Kardiovaskular</option>
+                                <option value="activity">📈 Activity / Pencernaan</option>
+                                <option value="baby">👶 Baby / Pediatri</option>
+                                <option value="pills">💊 Pills / Farmakologi</option>
+                                <option value="shield-halved">🛡️ Shield / Imunologi</option>
+                                <option value="eye">👁️ Eye / Mata</option>
+                                <option value="tooth">🦷 Tooth / Gigi & Mulut</option>
+                                <option value="bone">🦴 Bone / Ortopedi</option>
+                                <option value="book">📖 Book / Umum & Literatur</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Deskripsi Kategori</label>
+                        <textarea class="form-control" id="cat-form-desc" rows="3" placeholder="Penjelasan ringkas ruang lingkup medis kategori ini..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="App.closeModal('modal-category')">Batal</button>
+                    <button type="submit" class="btn btn-primary" id="btn-submit-category">Simpan Kategori</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Reset Knowledge Base (SuperAdmin) -->
+    <div class="modal-overlay" id="modal-reset-knowledge">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 class="modal-title" style="color: var(--danger);">
+                    <i class="fa-solid fa-triangle-exclamation"></i> Reset Knowledge Base
+                </h3>
+                <button class="modal-close" onclick="App.closeModal('modal-reset-knowledge')">&times;</button>
+            </div>
+            <form id="form-reset-knowledge" onsubmit="App.handleResetKnowledgeSubmit(event)">
+                <div class="modal-body">
+                    <div style="background: #fef2f2; border-left: 4px solid var(--danger); padding: 12px 16px; border-radius: var(--radius-md); margin-bottom: 16px;">
+                        <div style="font-weight: 700; color: #991b1b; font-size: 13.5px; margin-bottom: 4px;">
+                            ⚠️ Perhatian: Tindakan Bersifat Permanen
+                        </div>
+                        <p style="font-size: 12.5px; color: #7f1d1d; line-height: 1.5;">
+                            Hanya <strong>Super Administrator</strong> yang dapat mereset data basis pengetahuan TeleHealth.
+                        </p>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Pilihan Mode Reset <span class="req">*</span></label>
+                        <select class="form-control" id="reset-mode" required>
+                            <option value="DEFAULT">🔄 Reset ke Standar Pedoman Klinis Awal (PAPDI/WHO/Kemenkes) - Direkomendasikan</option>
+                            <option value="CLEAR_ALL">🗑️ Kosongkan Seluruh Knowledge & Antrian Kandidat</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Password Super Admin <span class="req">*</span></label>
+                        <input type="password" class="form-control" id="reset-superadmin-password" required placeholder="Masukkan password superadmin..." autocomplete="current-password">
+                        <div class="form-hint">Password administrator yang dikonfigurasi pada server (.env).</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="App.closeModal('modal-reset-knowledge')">Batal</button>
+                    <button type="submit" class="btn btn-danger" id="btn-submit-reset-kb">
+                        <i class="fa-solid fa-triangle-exclamation"></i> Konfirmasi Reset
                     </button>
                 </div>
             </form>

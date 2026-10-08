@@ -1,5 +1,5 @@
 /**
- * Chat & Query API Routes
+ * Chat & Query API Routes (supports Web Simulator, Telegram Webhook, and REST clients)
  */
 
 const express = require('express');
@@ -35,6 +35,22 @@ router.post('/ask', async (req, res) => {
         res.status(500).json({ error: 'Internal Server Error', message: err.message });
     }
 });
+
+// Telegram Official Webhook Receiver Endpoint (alternative to Polling)
+const handleWebhook = async (req, res) => {
+    try {
+        if (req.body) {
+            await telegramBot.processWebhookUpdate(req.body);
+        }
+        res.status(200).send('OK');
+    } catch (err) {
+        console.error('[Telegram Webhook Error]', err);
+        res.status(200).send('OK'); // Always return 200 to Telegram so it does not keep retrying errored packets
+    }
+};
+
+router.post('/telegram-webhook', handleWebhook);
+router.post('/webhook', handleWebhook);
 
 // Chat History
 router.get('/history', (req, res) => {

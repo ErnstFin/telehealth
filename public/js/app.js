@@ -1611,18 +1611,36 @@ const App = {
     },
 
     // -------------------------------------------------------------
-    // TAB 8: CATEGORIES & SOURCES
+    // TAB 8: CATEGORIES & SOURCES (WITH FULL CRUD)
     // -------------------------------------------------------------
     renderCategoriesAndSources() {
         const catBody = document.getElementById('categories-table-body');
         if (catBody) {
-            catBody.innerHTML = this.state.categories.map(c => `
-                <tr>
-                    <td><strong>${this.escapeHtml(c.name)}</strong></td>
-                    <td><code>${this.escapeHtml(c.slug)}</code></td>
-                    <td style="font-size: 12.5px; color: var(--text-muted);">${this.escapeHtml(c.description || '-')}</td>
-                </tr>
-            `).join('');
+            const categories = this.state.categories || [];
+            if (categories.length === 0) {
+                catBody.innerHTML = `<tr><td colspan="4" style="text-align: center; padding: 20px; color: var(--text-muted);">Belum ada kategori terdaftar.</td></tr>`;
+            } else {
+                catBody.innerHTML = categories.map(c => `
+                    <tr>
+                        <td>
+                            <div style="display: flex; align-items: center; gap: 8px; font-weight: 600;">
+                                <i class="fa-solid fa-${c.icon || 'stethoscope'}" style="color: var(--primary); font-size: 15px; width: 18px; text-align: center;"></i>
+                                <span>${this.escapeHtml(c.name)}</span>
+                            </div>
+                        </td>
+                        <td><code style="font-size: 11.5px; background: #f1f5f9; padding: 2px 6px; border-radius: 4px;">${this.escapeHtml(c.slug)}</code></td>
+                        <td style="font-size: 12.5px; color: var(--text-muted); max-width: 240px;">${this.escapeHtml(c.description || '-')}</td>
+                        <td style="text-align: center; white-space: nowrap;">
+                            <button class="btn btn-xs btn-outline-primary" onclick="App.openCategoryModal(${c.id})" title="Edit Kategori" style="padding: 4px 8px; margin-right: 4px;">
+                                <i class="fa-solid fa-pen"></i>
+                            </button>
+                            <button class="btn btn-xs btn-outline-danger" onclick="App.deleteCategory(${c.id}, '${this.escapeHtml(c.name)}')" title="Hapus Kategori" style="padding: 4px 8px;">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            }
         }
 
         const srcBody = document.getElementById('sources-table-body');
@@ -1647,6 +1665,193 @@ const App = {
         }
     },
 
+    openCategoryModal(catId = null) {
+        const form = document.getElementById('form-category');
+        const titleEl = document.getElementById('modal-category-title');
+        const idInput = document.getElementById('cat-form-id');
+        const nameInput = document.getElementById('cat-form-name');
+        const slugInput = document.getElementById('cat-form-slug');
+        const iconInput = document.getElementById('cat-form-icon');
+        const descInput = document.getElementById('cat-form-desc');
+
+        if (catId) {
+            const category = this.state.categories.find(c => Number(c.id) === Number(catId));
+            if (category) {
+                if (titleEl) titleEl.textContent = 'Edit Kategori Medis';
+                if (idInput) idInput.value = category.id;
+                if (nameInput) nameInput.value = category.name;
+                if (slugInput) slugInput.value = category.slug;
+                if (iconInput) iconInput.value = category.icon || 'stethoscope';
+                if (descInput) descInput.value = category.description || '';
+            }
+        } else {
+            if (form) form.reset();
+            if (titleEl) titleEl.textContent = 'Tambah Kategori Medis';
+            if (idInput) idInput.value = '';
+            if (iconInput) iconInput.value = 'stethoscope';
+        }
+
+        this.openModal('modal-category');
+    },
+
+    async handleCategorySubmit(event) {
+        event.preventDefault();
+        const id = document.getElementById('cat-form-id').value;
+        const name = document.getElementById('cat-form-name').value.trim();
+        const slug = document.getElementById('cat-form-slug').value.trim();
+        const icon = document.getElementById('cat-form-icon').value;
+        const description = document.getElementById('cat-form-desc').value.trim();
+
+        if (!name) {
+            this.toast('error', 'Nama kategori wajib diisi.');
+            return;
+        }
+
+        const payload = { name, slug, icon, description };
+        const url = id ? `/api/categories/${id}` : '/api/categories';
+        const method = id ? 'PUT' : 'POST';
+
+        const btn = document.getElementById('btn-submit-category');
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan...';
+        }
+
+        try {
+            const res = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await res.json();
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = 'Simpan Kategori';
+            }
+
+            if (data.success) {
+                this.toast('success', data.message || 'Kategori berhasil disimpan.');
+                this.closeModal('modal-category');
+                await this.loadInitialData();
+                this.renderCategoriesAndSources();
+            } else {
+                this.toast('error', data.error || 'Gagal menyimpan kategori.');
+            }
+        } catch (err) {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = 'Simpan Kategori';
+            }
+            this.toast('error', 'Terjadi kesalahan jaringan.');
+        }
+    },
+
+    async deleteCategory(catId, catName) {
+        if (!confirm(`Apakah Anda yakin ingin menghapus kategori "${catName}"?\n\nPengetahuan yang terhubung dengan kategori ini akan otomatis dipindahkan ke kategori Umum.`)) {
+            return;
+        }
+
+        try {
+            const res = await fetch(`/api/categories/${catId}`, {
+                method: 'DELETE'
+            });
+
+            const data = await res.json();
+            if (data.success) {
+                this.toast('success', data.message || 'Kategori berhasil dihapus.');
+                await this.loadInitialData();
+                this.renderCategoriesAndSources();
+            } else {
+                this.toast('error', data.error || 'Gagal menghapus kategori.');
+            }
+        } catch (err) {
+            this.toast('error', 'Terjadi kesalahan jaringan.');
+        }
+    },
+
+    // -------------------------------------------------------------
+    // SUPERADMIN: RESET KNOWLEDGE BASE
+    // -------------------------------------------------------------
+    openResetModal() {
+        const form = document.getElementById('form-reset-knowledge');
+        if (form) form.reset();
+        this.openModal('modal-reset-knowledge');
+    },
+
+    async handleResetKnowledgeSubmit(event) {
+        event.preventDefault();
+        const mode = document.getElementById('reset-mode').value;
+        const password = document.getElementById('reset-superadmin-password').value;
+
+        if (!password) {
+            this.toast('error', 'Password Super Admin wajib diisi.');
+            return;
+        }
+
+        const btn = document.getElementById('btn-submit-reset-kb');
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Mereset Data...';
+        }
+
+        try {
+            const res = await fetch('/api/system/reset-knowledge', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    mode,
+                    password,
+                    admin_user: 'Super Administrator'
+                })
+            });
+
+            const data = await res.json();
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Konfirmasi Reset';
+            }
+
+            if (data.success) {
+                this.toast('success', data.message || 'Knowledge Base berhasil direset!');
+                this.closeModal('modal-reset-knowledge');
+                await this.loadInitialData();
+                this.switchTab('knowledge');
+            } else {
+                this.toast('error', data.error || 'Password salah atau gagal mereset database.');
+            }
+        } catch (err) {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Konfirmasi Reset';
+            }
+            this.toast('error', 'Terjadi kesalahan jaringan.');
+        }
+    },
+
+    // -------------------------------------------------------------
+    // MULTILINGUAL & LANGUAGE SWITCHER
+    // -------------------------------------------------------------
+    setLanguage(lang = 'id') {
+        localStorage.setItem('telehealth_admin_lang', lang);
+        document.getElementById('btn-lang-id')?.classList.toggle('active', lang === 'id');
+        document.getElementById('btn-lang-en')?.classList.toggle('active', lang === 'en');
+
+        const isEn = lang === 'en';
+        const titleEl = document.getElementById('page-current-title');
+        const refreshBtn = document.getElementById('btn-refresh-data');
+        const tgText = document.getElementById('topbar-tg-text');
+
+        if (refreshBtn) {
+            refreshBtn.innerHTML = `<i class="fa-solid fa-rotate"></i> ${isEn ? 'Refresh' : 'Refresh'}`;
+        }
+        if (tgText) {
+            tgText.innerHTML = `<i class="fa-brands fa-telegram"></i> ${isEn ? 'Telegram Bot Connected' : 'Bot Telegram Terhubung'}`;
+        }
+
+        this.toast('info', isEn ? 'Language switched to English 🇬🇧' : 'Bahasa diubah ke Bahasa Indonesia 🇮🇩');
+    },
+
     // -------------------------------------------------------------
     // TAB 9: SETTINGS & BOT TELEGRAM
     // -------------------------------------------------------------
@@ -1662,9 +1867,11 @@ const App = {
                 diagEl.innerHTML = `
                     <div style="font-size: 13.5px; line-height: 1.8;">
                         <div><strong>Sistem:</strong> ${s.system_name} (v${s.version})</div>
-                        <div><strong>Database:</strong> <span class="badge badge-success">${s.database.type}</span></div>
-                        <div><strong>Telegram Bot Polling:</strong> ${s.telegram_bot.polling ? '<span class="badge badge-success">ACTIVE POLLING</span>' : '<span class="badge badge-secondary">INACTIVE</span>'}</div>
-                        <div><strong>Uptime:</strong> ${(s.uptime_seconds / 60).toFixed(1)} menit</div>
+                        <div><strong>Database Engine:</strong> <span class="badge badge-success">${s.database.type}</span></div>
+                        <div><strong>Knowledge Items:</strong> <strong>${s.database.total_knowledge || 0}</strong> aktif</div>
+                        <div><strong>Kategori Medis:</strong> <strong>${s.database.total_categories || 0}</strong> kategori</div>
+                        <div><strong>Telegram Bot:</strong> ${s.telegram_bot.polling ? '<span class="badge badge-success">ACTIVE POLLING</span>' : '<span class="badge badge-secondary">READY / WEBHOOK</span>'}</div>
+                        <div><strong>Uptime Server:</strong> ${(s.uptime_seconds / 60).toFixed(1)} menit</div>
                         <div style="margin-top: 10px;">
                             <a href="/api/system/status" target="_blank" class="btn btn-sm btn-secondary">
                                 <i class="fa-solid fa-code"></i> Periksa Diagnostic JSON
@@ -1731,3 +1938,4 @@ const App = {
 document.addEventListener('DOMContentLoaded', () => {
     App.init();
 });
+

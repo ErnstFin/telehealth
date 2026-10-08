@@ -5,6 +5,7 @@
  */
 
 const db = require('../db');
+const LanguageService = require('./languageService');
 
 // Important multi-word medical concepts & phrases
 const MEDICAL_PHRASES = [
@@ -81,22 +82,25 @@ class KnowledgeRetriever {
      */
     static async search(userQuestion, minThreshold = 0.58) {
         if (!userQuestion || typeof userQuestion !== 'string' || userQuestion.trim().length === 0) {
-            return { found: false, score: 0, knowledge: null };
+            return { found: false, score: 0, knowledge: null, lang: 'id' };
         }
+
+        const lang = LanguageService.detectLanguage(userQuestion);
+        const bridgedQuestion = LanguageService.bridgeQueryToMedical(userQuestion, lang);
 
         // 1. Fetch only ACTIVE knowledge items
         const activeKnowledge = db.find('knowledge', item => item.status === 'ACTIVE');
         if (!activeKnowledge || activeKnowledge.length === 0) {
-            return { found: false, score: 0, knowledge: null };
+            return { found: false, score: 0, knowledge: null, lang };
         }
 
-        const cleanQuestion = userQuestion.toLowerCase().trim();
+        const cleanQuestion = bridgedQuestion.toLowerCase().trim();
         const questionTokens = this.tokenize(cleanQuestion);
         const questionPhrases = this.extractPhrases(cleanQuestion);
         const detectedCategory = this.detectCategory(cleanQuestion);
 
         if (questionTokens.length === 0) {
-            return { found: false, score: 0, knowledge: null };
+            return { found: false, score: 0, knowledge: null, lang };
         }
 
         let bestMatch = null;
@@ -113,7 +117,7 @@ class KnowledgeRetriever {
         }
 
         // Must meet confidence score AND key concept coverage
-        const isConfident = bestMatch && highestScore >= minThreshold && (highestCoverage >= 0.35 || highestScore >= 0.70);
+        const isConfident = bestMatch && highestScore >= minThreshold && (highestCoverage >= 0.30 || highestScore >= 0.65);
 
         if (isConfident) {
             const source = bestMatch.source_id ? db.findById('sources', bestMatch.source_id) : null;
@@ -125,7 +129,8 @@ class KnowledgeRetriever {
                 coverage: Number(highestCoverage.toFixed(2)),
                 knowledge: bestMatch,
                 source,
-                category
+                category,
+                lang
             };
         }
 
@@ -134,7 +139,8 @@ class KnowledgeRetriever {
             score: Math.min(1.0, Number(highestScore.toFixed(2))),
             coverage: Number(highestCoverage.toFixed(2)),
             knowledge: null,
-            candidateMatch: bestMatch
+            candidateMatch: bestMatch,
+            lang
         };
     }
 
