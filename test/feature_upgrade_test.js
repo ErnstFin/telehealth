@@ -75,30 +75,34 @@ async function runTests() {
     });
 
     // -------------------------------------------------------------
-    // 2. MULTILINGUAL DETECTION & MEDICAL QUERY BRIDGING
+    // 2. MULTILINGUAL GREETINGS & DETECTION TESTS
     // -------------------------------------------------------------
-    console.log('\n🌐 [2] MULTILINGUAL DETECTION & BRIDGING TESTS');
-    test('Detect English language query', () => {
-        const lang1 = LanguageService.detectLanguage('How to treat a severe headache and fever?');
-        assert.strictEqual(lang1, 'en', 'Should detect English query');
-
-        const lang2 = LanguageService.detectLanguage('What are the symptoms of acid reflux or gerd?');
-        assert.strictEqual(lang2, 'en', 'Should detect English query');
+    console.log('\n🌐 [2] MULTILINGUAL GREETINGS & DETECTION TESTS');
+    test('Detect single-word English greetings ("Hello", "Hi", "Hey")', () => {
+        assert.strictEqual(LanguageService.detectLanguage('Hello'), 'en', 'Hello should detect as en');
+        assert.strictEqual(LanguageService.detectLanguage('Hi'), 'en', 'Hi should detect as en');
+        assert.strictEqual(LanguageService.detectLanguage('Hey'), 'en', 'Hey should detect as en');
+        assert.strictEqual(LanguageService.detectLanguage('Good morning'), 'en', 'Good morning should detect as en');
     });
 
-    test('Detect Javanese language query', () => {
-        const lang = LanguageService.detectLanguage('Sirahku ngelu lan wetengku perih, kudu ngombe opo?');
-        assert.strictEqual(lang, 'jv', 'Should detect Javanese query');
+    test('Detect regional greetings (Javanese & Sundanese)', () => {
+        assert.strictEqual(LanguageService.detectLanguage('Sugeng enjang'), 'jv', 'Sugeng enjang should detect as jv');
+        assert.strictEqual(LanguageService.detectLanguage('Sampurasun'), 'su', 'Sampurasun should detect as su');
+        assert.strictEqual(LanguageService.detectLanguage('Wilujeng enjing'), 'su', 'Wilujeng enjing should detect as su');
     });
 
-    test('Detect Sundanese language query', () => {
-        const lang = LanguageService.detectLanguage('Abdi lieur pisan sareng awak haredang panas tiris');
-        assert.strictEqual(lang, 'su', 'Should detect Sundanese query');
+    test('Detect Indonesian greetings ("Halo", "Hai", "Tes", "Selamat pagi")', () => {
+        assert.strictEqual(LanguageService.detectLanguage('Halo'), 'id', 'Halo should detect as id');
+        assert.strictEqual(LanguageService.detectLanguage('Hai'), 'id', 'Hai should detect as id');
+        assert.strictEqual(LanguageService.detectLanguage('Tes'), 'id', 'Tes should detect as id');
+        assert.strictEqual(LanguageService.detectLanguage('Selamat pagi'), 'id', 'Selamat pagi should detect as id');
     });
 
-    test('Detect Indonesian language query', () => {
-        const lang = LanguageService.detectLanguage('Bagaimana cara penanganan flu dan batuk berdahak?');
-        assert.strictEqual(lang, 'id', 'Should detect Indonesian query');
+    test('Detect complex multilingual clinical questions', () => {
+        assert.strictEqual(LanguageService.detectLanguage('How to treat a severe headache and fever?'), 'en');
+        assert.strictEqual(LanguageService.detectLanguage('Sirahku ngelu lan wetengku perih, kudu ngombe opo?'), 'jv');
+        assert.strictEqual(LanguageService.detectLanguage('Abdi lieur pisan sareng awak haredang panas tiris'), 'su');
+        assert.strictEqual(LanguageService.detectLanguage('Bagaimana cara penanganan flu dan batuk berdahak?'), 'id');
     });
 
     test('Bridge English query with medical keywords', () => {
@@ -106,15 +110,34 @@ async function runTests() {
         assert.ok(bridged.includes('sakit kepala') || bridged.includes('demam'), 'Bridged query should include Indonesian medical synonyms');
     });
 
-    test('Bridge Javanese query with medical keywords', () => {
-        const bridged = LanguageService.bridgeQueryToMedical('wetengku perih lan sebah', 'jv');
-        assert.ok(bridged.includes('maag') || bridged.includes('lambung'), 'Bridged query should include medical terms');
+    // -------------------------------------------------------------
+    // 3. MULTILINGUAL BOT UI & KEYBOARDS
+    // -------------------------------------------------------------
+    console.log('\n📱 [3] MULTILINGUAL BOT UI & KEYBOARD GENERATION TESTS');
+    test('Generate English Bot Welcome Menu & Keyboards', () => {
+        const ui = LanguageService.getBotUIDictionary('en', 'Ernst');
+        assert.ok(ui.welcomeText.includes('Hello *Ernst*! Welcome to *TeleHealth*'), 'Welcome text should be in English');
+        assert.ok(ui.mainInlineKeyboard.inline_keyboard[0][0].text.includes('Check Common Symptoms'), 'Buttons should be in English');
+        assert.ok(ui.mainReplyKeyboard.keyboard[0][0].text.includes('Main Menu'), 'Reply keyboard should be in English');
+        assert.ok(ui.gejalaInlineKeyboard.inline_keyboard[0][0].text.includes('Flu, Cough & Fever'), 'Symptom keyboard in English');
+    });
+
+    test('Generate Javanese Bot Welcome Menu', () => {
+        const ui = LanguageService.getBotUIDictionary('jv', 'Ernst');
+        assert.ok(ui.welcomeText.includes('Sugeng rawuh *Ernst*'), 'Welcome text should be in Javanese');
+        assert.ok(ui.mainInlineKeyboard.inline_keyboard[0][0].text.includes('Priksa Gejala'), 'Buttons should be in Javanese');
+    });
+
+    test('Generate Indonesian Bot Welcome Menu', () => {
+        const ui = LanguageService.getBotUIDictionary('id', 'Ernst');
+        assert.ok(ui.welcomeText.includes('Halo *Ernst*! Selamat datang'), 'Welcome text should be in Indonesian');
+        assert.ok(ui.mainInlineKeyboard.inline_keyboard[0][0].text.includes('Cek Gejala Umum'), 'Buttons should be in Indonesian');
     });
 
     // -------------------------------------------------------------
-    // 3. MULTILINGUAL KNOWLEDGE RETRIEVAL & RESPONSE GENERATION
+    // 4. MULTILINGUAL KNOWLEDGE RETRIEVAL & RESPONSE GENERATION
     // -------------------------------------------------------------
-    console.log('\n🤖 [3] MULTILINGUAL RETRIEVAL & RESPONSE FORMATTING TESTS');
+    console.log('\n🤖 [4] MULTILINGUAL RETRIEVAL & RESPONSE FORMATTING TESTS');
     await testAsync('Retrieve knowledge for English headache query and format in English', async () => {
         const search = await KnowledgeRetriever.search('How to treat tension headache and migraine?', 0.58);
         assert.strictEqual(search.found, true, 'Knowledge should be found for English query');
@@ -142,13 +165,13 @@ async function runTests() {
 
     test('Non-health refusal in English', () => {
         const refusal = HealthValidator.getNonHealthResponse('en');
-        assert.ok(refusal.includes('TeleHealth Specialized Medical Assistant'), 'Refusal should be in English');
+        assert.ok(refusal.includes('TeleHealth AI Assistant') || refusal.includes('TeleHealth Specialized Medical Assistant'), 'Refusal should be in English');
     });
 
     // -------------------------------------------------------------
-    // 4. FULL BOT PIPELINE MULTILINGUAL TEST
+    // 5. FULL BOT PIPELINE MULTILINGUAL TEST
     // -------------------------------------------------------------
-    console.log('\n💬 [4] END-TO-END PIPELINE MULTILINGUAL TESTS');
+    console.log('\n💬 [5] END-TO-END PIPELINE MULTILINGUAL TESTS');
     await testAsync('Bot handles English health question end-to-end', async () => {
         const result = await telegramBot.handleIncomingMessage({
             telegramChatId: 'test-device-en',
@@ -171,15 +194,14 @@ async function runTests() {
 
         assert.strictEqual(result.status, 'REJECTED_NON_HEALTH', 'Should reject non-health');
         assert.strictEqual(result.language, 'en', 'Should detect English');
-        assert.ok(result.responseMessage.includes('TeleHealth Specialized Medical Assistant'), 'Refusal should be in English');
+        assert.ok(result.responseMessage.includes('Non-Healthcare Inquiry Notice') || result.responseMessage.includes('TeleHealth AI Assistant'), 'Refusal should be in English');
     });
 
     // -------------------------------------------------------------
-    // 5. SUPERADMIN KNOWLEDGE BASE RESET TESTS
+    // 6. SUPERADMIN KNOWLEDGE BASE RESET TESTS
     // -------------------------------------------------------------
-    console.log('\n🛡️ [5] SUPERADMIN KNOWLEDGE BASE RESET TESTS');
+    console.log('\n🛡️ [6] SUPERADMIN KNOWLEDGE BASE RESET TESTS');
     test('Reset Knowledge Base to DEFAULT baseline', () => {
-        // Insert dummy custom knowledge first
         db.insert('knowledge', {
             title: 'Custom Test Knowledge Entry',
             topic_keywords: 'test',

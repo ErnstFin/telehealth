@@ -1,7 +1,8 @@
 /**
  * TeleHealth Multilingual Engine & Translation Service
  * Provides automatic language detection (Indonesian, English, Javanese, Sundanese),
- * medical concept cross-lingual synonym mapping, and localized clinical response formatting.
+ * medical concept cross-lingual synonym mapping, localized Telegram Bot menus/keyboards,
+ * and clinical response formatting.
  */
 
 // Medical English-Indonesian Concept Dictionary
@@ -105,18 +106,33 @@ const REGIONAL_ID_MEDICAL_MAP = {
 
 class LanguageService {
     /**
-     * Detects the language of the incoming text
-     * @param {string} text - User question
+     * Detects the language of the incoming text (English, Indonesian, Javanese, Sundanese)
+     * @param {string} text - User question or greeting
      * @returns {string} 'en' | 'jv' | 'su' | 'id'
      */
     static detectLanguage(text) {
         if (!text || typeof text !== 'string') return 'id';
-        const clean = text.toLowerCase().trim();
+        const clean = text.toLowerCase().replace(/[\.\,\!\?\#\$\%\&\*\(\)\_\+\=\[\]\{\}\<\>\/\\\|~`]/g, ' ').replace(/\s+/g, ' ').trim();
+        if (!clean) return 'id';
 
-        // 1. English indicators
+        // 1. Instant Exact Single-Word & Direct Greetings Matching
+        if (/^(hello|hi|hey|howdy|good\s+(morning|afternoon|evening|night|day)|greetings|help|doctor|status|start|menu|guide)$/i.test(clean)) {
+            return 'en';
+        }
+        if (/^(sugeng\s+(enjang|siang|sonten|dalu|rawuh)|kula\s+nuwun|matur\s+nuwun|nyuwun\s+sewu|kula)$/i.test(clean)) {
+            return 'jv';
+        }
+        if (/^(sampurasun|wilujeng\s+(enjing|siang|sonten|wengi|sumping)|hatur\s+nuhun|punten|abdi)$/i.test(clean)) {
+            return 'su';
+        }
+        if (/^(halo|hai|tes|test|selamat\s+(pagi|siang|sore|malam|datang)|assalamu'?alaikum|assalamualaikum|p|ping|bantuan|mulai)$/i.test(clean)) {
+            return 'id';
+        }
+
+        // 2. English indicators
         const englishWords = [
             'how', 'what', 'why', 'when', 'where', 'who', 'which', 'can', 'should',
-            'could', 'would', 'is', 'are', 'am', 'the', 'my', 'i', 'have', 'feel',
+            'could', 'would', 'is', 'are', 'am', 'was', 'were', 'the', 'my', 'i', 'me', 'have', 'has', 'had', 'feel',
             'feeling', 'pain', 'ache', 'fever', 'headache', 'stomach', 'cough',
             'cold', 'doctor', 'treatment', 'treat', 'medicine', 'cure', 'symptoms',
             'symptom', 'causes', 'cause', 'relief', 'relieve', 'remedy', 'help',
@@ -124,8 +140,8 @@ class LanguageService {
             'pressure', 'fatigue', 'dizzy', 'dizziness', 'illness', 'disease',
             'to', 'for', 'with', 'from', 'in', 'on', 'at', 'it', 'this', 'that',
             'you', 'your', 'we', 'they', 'do', 'does', 'did', 'make', 'get', 'give',
-            'write', 'script', 'code', 'database', 'query', 'hello', 'hi', 'good',
-            'morning', 'evening', 'night', 'thank', 'thanks', 'need', 'want', 'like'
+            'write', 'script', 'code', 'database', 'query', 'hello', 'hi', 'hey', 'good',
+            'morning', 'evening', 'night', 'thank', 'thanks', 'need', 'want', 'like', 'take'
         ];
 
         let enCount = 0;
@@ -134,12 +150,13 @@ class LanguageService {
             if (regex.test(clean)) enCount++;
         }
 
-        // 2. Javanese indicators
+        // 3. Javanese indicators
         const javaneseWords = [
             'ngelu', 'mumet', 'mriang', 'awake', 'panas', 'watuk', 'weteng', 'loro',
             'kudu', 'ngombe', 'piye', 'carane', 'opo', 'iso', 'penak', 'mangan',
             'ngunjuk', 'turu', 'awakku', 'sirahku', 'wetengku', 'matur', 'nuwun',
-            'punika', 'menawi', 'mboten', 'sampun', 'dereng', 'sugeng'
+            'punika', 'menawi', 'mboten', 'sampun', 'dereng', 'sugeng', 'kula', 'panjenengan',
+            'sampeyan', 'boyok', 'untu', 'garing', 'grok', 'sebah', 'ngorong', 'lemes'
         ];
 
         let jvCount = 0;
@@ -148,11 +165,12 @@ class LanguageService {
             if (regex.test(clean)) jvCount++;
         }
 
-        // 3. Sundanese indicators
+        // 4. Sundanese indicators
         const sundaneseWords = [
             'lieur', 'haredang', 'tiris', 'padaharan', 'nyeuri', 'sirah', 'tikoro',
             'leuleus', 'kumaha', 'carana', 'naha', 'naon', 'kedah', 'ngaleueut',
-            'abdi', 'urang', 'atos', 'teu', 'acan', 'nuhun', 'pisan', 'waos'
+            'abdi', 'urang', 'atos', 'teu', 'acan', 'nuhun', 'pisan', 'waos', 'sampurasun',
+            'wilujeng', 'mastaka', 'panon', 'beuteung', 'rieut', 'anjeun'
         ];
 
         let suCount = 0;
@@ -161,13 +179,17 @@ class LanguageService {
             if (regex.test(clean)) suCount++;
         }
 
-        if (enCount >= 2 || (enCount >= 1 && /\b(headache|fever|cough|stomach|doctor|symptoms|pain|cold|how to|write|script|database)\b/i.test(clean))) {
-            return 'en';
+        // Scoring resolution
+        if (enCount >= 1 && (enCount > jvCount && enCount > suCount)) {
+            // Check if strong English intent
+            if (enCount >= 2 || /\b(hello|hi|hey|headache|fever|cough|stomach|doctor|symptoms|pain|cold|how to|write|script|database|medicine|treatment|help|please)\b/i.test(clean)) {
+                return 'en';
+            }
         }
-        if (jvCount >= 2 || (jvCount >= 1 && /\b(ngelu|mumet|mriang|weteng|watuk|boyok)\b/i.test(clean))) {
+        if (jvCount >= 1 && (jvCount > enCount && jvCount >= suCount)) {
             return 'jv';
         }
-        if (suCount >= 2 || (suCount >= 1 && /\b(lieur|haredang|padaharan|leuleus|tikoro)\b/i.test(clean))) {
+        if (suCount >= 1 && (suCount > enCount && suCount > jvCount)) {
             return 'su';
         }
 
@@ -213,7 +235,6 @@ class LanguageService {
      * Translates core medical points & text to English if target is 'en'
      */
     static translateKnowledgeToEnglish(knowledgeItem, category, source) {
-        // Translation mapping for common standard clinical titles and summaries
         const EN_TRANSLATIONS = {
             1: {
                 title: 'Early Symptom Management of Common Cold and Flu in Adults',
@@ -308,6 +329,549 @@ class LanguageService {
             important_points: points,
             when_to_see_doctor: knowledgeItem.when_to_see_doctor,
             category_name: category ? category.name : 'General Healthcare'
+        };
+    }
+
+    /**
+     * Complete Multilingual Bot UI Dictionary (Menus, Buttons, Messages)
+     * @param {string} lang - 'en' | 'id' | 'jv' | 'su'
+     * @param {string} firstName - User's name
+     */
+    static getBotUIDictionary(lang = 'id', firstName = 'User') {
+        const name = firstName || (lang === 'en' ? 'there' : 'Pengguna');
+
+        if (lang === 'en') {
+            return {
+                welcomeText: (
+                    `🏥 *TeleHealth Assistant* — Digital Healthcare Solution\n` +
+                    `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+                    `👋 Hello *${name}*! Welcome to *TeleHealth* medical assistant.\n\n` +
+                    `Our platform provides verified clinical healthcare education and direct consultation with on-call physicians.\n` +
+                    `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+                    `👇 *Select an interactive menu below or type your medical question directly:*`
+                ),
+                welcomeTip: `💡 _Use the buttons below for quick navigation anytime._`,
+                mainInlineKeyboard: {
+                    inline_keyboard: [
+                        [
+                            { text: '🤒 Check Common Symptoms', callback_data: 'menu_gejala' },
+                            { text: '💊 Medications & Therapy', callback_data: 'menu_obat' }
+                        ],
+                        [
+                            { text: '👨‍⚕️ Ask On-Call Doctor', callback_data: 'menu_dokter' },
+                            { text: '📋 Consultation Status', callback_data: 'menu_status' }
+                        ],
+                        [
+                            { text: '🚨 Emergency / ER Guide', callback_data: 'menu_darurat' },
+                            { text: 'ℹ️ Bot User Guide', callback_data: 'menu_help' }
+                        ]
+                    ]
+                },
+                mainReplyKeyboard: {
+                    keyboard: [
+                        [{ text: '🏠 Main Menu' }, { text: '🩺 Symptoms & Topics' }],
+                        [{ text: '👨‍⚕️ Ask Doctor' }, { text: '📋 Consultation Status' }],
+                        [{ text: 'ℹ️ Help & User Guide' }]
+                    ],
+                    resize_keyboard: true,
+                    is_persistent: true
+                },
+                gejalaText: (
+                    `🩺 *Check Common Symptoms & Health Topics*\n` +
+                    `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+                    `Select a common health condition below to view verified clinical guidance:\n`
+                ),
+                gejalaInlineKeyboard: {
+                    inline_keyboard: [
+                        [
+                            { text: '🤒 Flu, Cough & Fever', callback_data: 'query_topic:penanganan flu batuk dan demam' },
+                            { text: '🤢 Gastritis & GERD', callback_data: 'query_topic:gejala sakit maag asam lambung gerd' }
+                        ],
+                        [
+                            { text: '🤕 Headache & Migraine', callback_data: 'query_topic:mengatasi sakit kepala migrain' },
+                            { text: '🤧 Allergies & Respiratory', callback_data: 'query_topic:alergi debu dan ispa batuk' }
+                        ],
+                        [
+                            { text: '🩸 Hypertension & BP', callback_data: 'query_topic:hipertensi tekanan darah tinggi' },
+                            { text: '🦷 Toothache & Dental Pain', callback_data: 'query_topic:penanganan sakit gigi nyeri gusi' }
+                        ],
+                        [
+                            { text: '🔙 Back to Main Menu', callback_data: 'menu_main' }
+                        ]
+                    ]
+                },
+                obatText: (
+                    `💊 *Medications & Therapy Information Guide*\n` +
+                    `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+                    `Select a common medication topic below for usage instructions and safety guidelines:\n`
+                ),
+                obatInlineKeyboard: {
+                    inline_keyboard: [
+                        [
+                            { text: '💊 Paracetamol (Fever / Pain)', callback_data: 'query_topic:aturan minum paracetamol demam' },
+                            { text: '💊 Antacid (Stomach Acid / GERD)', callback_data: 'query_topic:aturan minum antasida sakit maag' }
+                        ],
+                        [
+                            { text: '💊 Vitamin C & Immunity', callback_data: 'query_topic:konsumsi vitamin c harian' },
+                            { text: '💊 Safe Medication Guidelines', callback_data: 'query_topic:panduan minum obat yang benar' }
+                        ],
+                        [
+                            { text: '🔙 Back to Main Menu', callback_data: 'menu_main' }
+                        ]
+                    ]
+                },
+                daruratText: (
+                    `🚨 *Emergency Conditions & Red Flags Guide*\n` +
+                    `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+                    `Please immediately visit the **nearest Hospital Emergency Department (ER)** or call **911/119** if experiencing:\n\n` +
+                    `🔴 *Severe shortness of breath* or noisy breathing\n` +
+                    `🔴 *Crushing chest pain* radiating to left arm or jaw\n` +
+                    `🔴 *Loss of consciousness*, syncope, or sudden convulsions\n` +
+                    `🔴 *Severe profuse bleeding* that does not stop\n` +
+                    `🔴 *Sudden one-sided weakness* or slurred speech (stroke signs)\n` +
+                    `🔴 *Very high fever (> 39.5°C)* with stiff neck\n` +
+                    `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+                    `⚠️ _TeleHealth is not designed for direct emergency life-support services._`
+                ),
+                daruratInlineKeyboard: {
+                    inline_keyboard: [
+                        [{ text: '👨‍⚕️ Consult On-Call Doctor', callback_data: 'menu_dokter' }],
+                        [{ text: '🔙 Back to Main Menu', callback_data: 'menu_main' }]
+                    ]
+                },
+                helpText: (
+                    `ℹ️ *TeleHealth Bot Help & User Guide*\n` +
+                    `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+                    `🤖 *How to Use This Bot:*\n` +
+                    `1. **Ask Freely:** Type any medical question, e.g. _"How to relieve tension headache?"_\n` +
+                    `2. **Verified Clinical Archive:** Get immediate answers from verified clinical literature.\n` +
+                    `3. **Doctor Escalation:** If unlisted, your question is automatically routed to on-call doctors.\n` +
+                    `4. **Check Status:** Press *📋 Consultation Status* to track your doctor tickets.\n\n` +
+                    `📌 *Quick Commands:*\n` +
+                    `• \`/start\` or \`/menu\` - Open main menu\n` +
+                    `• \`/gejala\` - Browse symptom categories\n` +
+                    `• \`/dokter\` - Consult on-call physician\n` +
+                    `• \`/status\` - View consultation tickets\n` +
+                    `• \`/help\` - View this guide\n` +
+                    `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+                    `⚕️ _TeleHealth provides safe, verified digital healthcare assistance._`
+                ),
+                helpInlineKeyboard: {
+                    inline_keyboard: [
+                        [{ text: '🩺 Check Symptoms Now', callback_data: 'menu_gejala' }],
+                        [{ text: '🏠 Main Menu', callback_data: 'menu_main' }]
+                    ]
+                },
+                doctorPromptText: (
+                    `👨‍⚕️ *TeleHealth On-Call Physician Consultation*\n` +
+                    `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+                    `Please **type your physical symptoms or health question** in detail and send it to this chat.\n\n` +
+                    `💡 *Tips for a Detailed Consultation:*\n` +
+                    `• Describe primary symptoms (e.g., chest burning, high fever, rash)\n` +
+                    `• Duration and severity of the symptoms\n` +
+                    `• Any current medications or medical history\n\n` +
+                    `Our system will search our medical database and automatically forward to on-call doctors if required.`
+                ),
+                doctorPromptInlineKeyboard: {
+                    inline_keyboard: [
+                        [{ text: '🔙 Back to Main Menu', callback_data: 'menu_main' }]
+                    ]
+                },
+                statusEmptyText: (
+                    `📋 *Your Medical Consultation Status*\n` +
+                    `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+                    `No active consultation tickets found for your account.\n\n` +
+                    `💡 _Type your medical question anytime or tap below to consult._`
+                ),
+                statusEmptyInlineKeyboard: {
+                    inline_keyboard: [
+                        [{ text: '👨‍⚕️ Consult Doctor Now', callback_data: 'menu_dokter' }],
+                        [{ text: '🏠 Main Menu', callback_data: 'menu_main' }]
+                    ]
+                },
+                statusListTitle: `📋 *Your Medical Consultation List*\nHere is the current status of your doctor consultation tickets:\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n`,
+                statusListFooter: `\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n_Doctor reply notifications will be sent directly to this chat once answered._`,
+                statusInlineKeyboard: {
+                    inline_keyboard: [
+                        [{ text: '🔄 Refresh Status', callback_data: 'menu_status' }],
+                        [
+                            { text: '👨‍⚕️ New Consultation', callback_data: 'menu_dokter' },
+                            { text: '🏠 Main Menu', callback_data: 'menu_main' }
+                        ]
+                    ]
+                },
+                actionButtonsKB: (questionId) => ({
+                    inline_keyboard: [
+                        [{ text: '👨‍⚕️ Need Doctor Advice?', callback_data: `forward_doctor:${questionId}` }],
+                        [
+                            { text: '🩺 Check Other Symptoms', callback_data: 'menu_gejala' },
+                            { text: '🏠 Main Menu', callback_data: 'menu_main' }
+                        ]
+                    ]
+                }),
+                actionButtonsDoctor: {
+                    inline_keyboard: [
+                        [
+                            { text: '📋 Check My Queue Status', callback_data: 'menu_status' },
+                            { text: '🏠 Main Menu', callback_data: 'menu_main' }
+                        ]
+                    ]
+                },
+                actionButtonsNonHealth: {
+                    inline_keyboard: [
+                        [
+                            { text: '🤒 Example: Flu Care', callback_data: 'query_topic:penanganan flu batuk' },
+                            { text: '🤢 Example: Gastritis / GERD', callback_data: 'query_topic:gejala sakit maag' }
+                        ],
+                        [
+                            { text: '🏠 Main Menu', callback_data: 'menu_main' }
+                        ]
+                    ]
+                }
+            };
+        }
+
+        if (lang === 'jv') {
+            return {
+                welcomeText: (
+                    `🏥 *TeleHealth Assistant* — Layanan Kasarasan Digital\n` +
+                    `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+                    `👋 Sugeng rawuh *${name}* ing layanan asisten medis *TeleHealth*.\n\n` +
+                    `Sistem punika nyiapaken informasi kasarasan saking pustaka medis tervalidasi lan konsultasi kaliyan dokter jaga.\n` +
+                    `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+                    `👇 *Mangga pilih menu ing ngandhap utawi langsung serat keluhan kasarasan Panjenengan:*`
+                ),
+                welcomeTip: `💡 _Ginakaken tombol ing ngandhap kangge navigasi cepet kapan kemawon._`,
+                mainInlineKeyboard: {
+                    inline_keyboard: [
+                        [
+                            { text: '🤒 Priksa Gejala Umum', callback_data: 'menu_gejala' },
+                            { text: '💊 Info Obat & Terapi', callback_data: 'menu_obat' }
+                        ],
+                        [
+                            { text: '👨‍⚕️ Tanglet Dokter Jaga', callback_data: 'menu_dokter' },
+                            { text: '📋 Status Konsultasi', callback_data: 'menu_status' }
+                        ],
+                        [
+                            { text: '🚨 Panduan Darurat / IGD', callback_data: 'menu_darurat' },
+                            { text: 'ℹ️ Panduan Bot', callback_data: 'menu_help' }
+                        ]
+                    ]
+                },
+                mainReplyKeyboard: {
+                    keyboard: [
+                        [{ text: '🏠 Menu Utama' }, { text: '🩺 Priksa Gejala' }],
+                        [{ text: '👨‍⚕️ Tanglet Dokter' }, { text: '📋 Status Konsultasi' }],
+                        [{ text: 'ℹ️ Panduan & Bantuan' }]
+                    ],
+                    resize_keyboard: true,
+                    is_persistent: true
+                },
+                gejalaText: (
+                    `🩺 *Priksa Gejala & Topik Kasarasan*\n` +
+                    `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+                    `Pilih salah satunggaling keluhan kasarasan umum ing ngandhap:\n`
+                ),
+                gejalaInlineKeyboard: {
+                    inline_keyboard: [
+                        [
+                            { text: '🤒 Flu, Watuk & Demam', callback_data: 'query_topic:penanganan flu batuk dan demam' },
+                            { text: '🤢 Sakit Maag & Lambung', callback_data: 'query_topic:gejala sakit maag asam lambung gerd' }
+                        ],
+                        [
+                            { text: '🤕 Sakit Sirah & Migrain', callback_data: 'query_topic:mengatasi sakit kepala migrain' },
+                            { text: '🤧 Alergi & ISPA', callback_data: 'query_topic:alergi debu dan ispa batuk' }
+                        ],
+                        [
+                            { text: '🔙 Wangsul dhateng Menu Utama', callback_data: 'menu_main' }
+                        ]
+                    ]
+                },
+                obatText: (
+                    `💊 *Panduan Informasi Obat & Terapi*\n` +
+                    `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+                    `Pilih topik obat umum ing ngandhap kangge mangertosi aturan ngunjukipun:\n`
+                ),
+                obatInlineKeyboard: {
+                    inline_keyboard: [
+                        [
+                            { text: '💊 Paracetamol (Panas / Demam)', callback_data: 'query_topic:aturan minum paracetamol demam' },
+                            { text: '💊 Antasida (Obat Lambung)', callback_data: 'query_topic:aturan minum antasida sakit maag' }
+                        ],
+                        [
+                            { text: '🔙 Wangsul dhateng Menu Utama', callback_data: 'menu_main' }
+                        ]
+                    ]
+                },
+                daruratText: (
+                    `🚨 *Panduan Kondisi Darurat & Tanda Bebaya (Red Flags)*\n` +
+                    `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+                    `Enggal tindak dhateng **IGD Rumah Sakit paling caket** menawi wonten tandha punika:\n\n` +
+                    `🔴 *Sesak napas awrat*\n` +
+                    `🔴 *Nyeri dada sanget*\n` +
+                    `🔴 *Semaput utawi kejang mendadak*\n` +
+                    `🔴 *Pendarahan kathah*\n` +
+                    `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+                    `⚠️ _TeleHealth mboten nglayani kegawatdaruratan medis langsung._`
+                ),
+                daruratInlineKeyboard: {
+                    inline_keyboard: [
+                        [{ text: '👨‍⚕️ Konsultasi Dokter Jaga', callback_data: 'menu_dokter' }],
+                        [{ text: '🔙 Wangsul dhateng Menu Utama', callback_data: 'menu_main' }]
+                    ]
+                },
+                helpText: (
+                    `ℹ️ *Bantuan & Panduan Penggunaan TeleHealth*\n` +
+                    `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+                    `🤖 *Cara Ginakaken Bot:*\n` +
+                    `1. Serat pitakon kasarasan Panjenengan kanthi langsung.\n` +
+                    `2. Bot badhe maringi wangsulan saking pustaka medis resmi.\n` +
+                    `3. Menawi dereng wonten, pitakon badhe dipunterusaken dhumateng dokter jaga.\n`
+                ),
+                helpInlineKeyboard: {
+                    inline_keyboard: [
+                        [{ text: '🏠 Menu Utama', callback_data: 'menu_main' }]
+                    ]
+                },
+                doctorPromptText: (
+                    `👨‍⚕️ *Konsultasi Dokter Jaga TeleHealth*\n` +
+                    `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+                    `Mangga **serat keluhan kasarasan Panjenengan** kanthi jangkep wonten ing chat punika.`
+                ),
+                doctorPromptInlineKeyboard: {
+                    inline_keyboard: [
+                        [{ text: '🔙 Wangsul dhateng Menu Utama', callback_data: 'menu_main' }]
+                    ]
+                },
+                statusEmptyText: (
+                    `📋 *Status Konsultasi Medis Panjenengan*\n` +
+                    `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+                    `Dereng wonten riwayat antrian dokter kangge akun Panjenengan.`
+                ),
+                statusEmptyInlineKeyboard: {
+                    inline_keyboard: [
+                        [{ text: '👨‍⚕️ Konsultasi Sakmenika', callback_data: 'menu_dokter' }],
+                        [{ text: '🏠 Menu Utama', callback_data: 'menu_main' }]
+                    ]
+                },
+                statusListTitle: `📋 *Daftar Konsultasi Medis Panjenengan*\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n`,
+                statusListFooter: `\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n_Wangsulan saking dokter badhe otomatis dipunkirim mriki._`,
+                statusInlineKeyboard: {
+                    inline_keyboard: [
+                        [{ text: '🔄 Refresh Status', callback_data: 'menu_status' }],
+                        [{ text: '🏠 Menu Utama', callback_data: 'menu_main' }]
+                    ]
+                },
+                actionButtonsKB: (questionId) => ({
+                    inline_keyboard: [
+                        [{ text: '👨‍⚕️ Tanglet Dokter Jaga?', callback_data: `forward_doctor:${questionId}` }],
+                        [{ text: '🏠 Menu Utama', callback_data: 'menu_main' }]
+                    ]
+                }),
+                actionButtonsDoctor: {
+                    inline_keyboard: [
+                        [
+                            { text: '📋 Cek Antrian Kula', callback_data: 'menu_status' },
+                            { text: '🏠 Menu Utama', callback_data: 'menu_main' }
+                        ]
+                    ]
+                },
+                actionButtonsNonHealth: {
+                    inline_keyboard: [
+                        [{ text: '🏠 Menu Utama', callback_data: 'menu_main' }]
+                    ]
+                }
+            };
+        }
+
+        // Default Indonesian ('id')
+        return {
+            welcomeText: (
+                `🏥 *TeleHealth Assistant* — Solusi Kesehatan Digital\n` +
+                `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+                `👋 Halo *${name}*! Selamat datang di layanan asisten medis *TeleHealth*.\n\n` +
+                `Sistem kami menyediakan edukasi kesehatan berbasis literatur terverifikasi dan konsultasi langsung dengan dokter jaga.\n` +
+                `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+                `👇 *Pilih menu interaktif di bawah atau langsung ketik keluhan Anda:*`
+            ),
+            welcomeTip: `💡 _Gunakan tombol di bawah untuk navigasi cepat kapan saja._`,
+            mainInlineKeyboard: {
+                inline_keyboard: [
+                    [
+                        { text: '🤒 Cek Gejala Umum', callback_data: 'menu_gejala' },
+                        { text: '💊 Info Obat & Terapi', callback_data: 'menu_obat' }
+                    ],
+                    [
+                        { text: '👨‍⚕️ Tanya Dokter Jaga', callback_data: 'menu_dokter' },
+                        { text: '📋 Status Konsultasi', callback_data: 'menu_status' }
+                    ],
+                    [
+                        { text: '🚨 Panduan Darurat / IGD', callback_data: 'menu_darurat' },
+                        { text: 'ℹ️ Panduan Bot', callback_data: 'menu_help' }
+                    ]
+                ]
+            },
+            mainReplyKeyboard: {
+                keyboard: [
+                    [{ text: '🏠 Menu Utama' }, { text: '🩺 Cek Gejala & Topik' }],
+                    [{ text: '👨‍⚕️ Tanya Dokter' }, { text: '📋 Status Konsultasi' }],
+                    [{ text: 'ℹ️ Panduan & Bantuan' }]
+                ],
+                resize_keyboard: true,
+                is_persistent: true
+            },
+            gejalaText: (
+                `🩺 *Cek Gejala & Topik Kesehatan Populer*\n` +
+                `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+                `Pilih salah satu keluhan umum di bawah untuk melihat ringkasan klinis tervalidasi:\n`
+            ),
+            gejalaInlineKeyboard: {
+                inline_keyboard: [
+                    [
+                        { text: '🤒 Flu, Batuk & Demam', callback_data: 'query_topic:penanganan flu batuk dan demam' },
+                        { text: '🤢 Sakit Maag & Lambung', callback_data: 'query_topic:gejala sakit maag asam lambung gerd' }
+                    ],
+                    [
+                        { text: '🤕 Sakit Kepala & Migrain', callback_data: 'query_topic:mengatasi sakit kepala migrain' },
+                        { text: '🤧 Alergi & ISPA', callback_data: 'query_topic:alergi debu dan ispa batuk' }
+                    ],
+                    [
+                        { text: '🩸 Hipertensi & Tensi', callback_data: 'query_topic:hipertensi tekanan darah tinggi' },
+                        { text: '🦷 Sakit Gigi & Gusi', callback_data: 'query_topic:penanganan sakit gigi nyeri gusi' }
+                    ],
+                    [
+                        { text: '🔙 Kembali ke Menu Utama', callback_data: 'menu_main' }
+                    ]
+                ]
+            },
+            obatText: (
+                `💊 *Panduan Informasi Obat & Terapi*\n` +
+                `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+                `Pilih topik obat umum di bawah untuk melihat aturan pakai dan anjuran keselamatan:\n`
+            ),
+            obatInlineKeyboard: {
+                inline_keyboard: [
+                    [
+                        { text: '💊 Paracetamol (Penurun Demam)', callback_data: 'query_topic:aturan minum paracetamol demam' },
+                        { text: '💊 Antasida (Obat Lambung)', callback_data: 'query_topic:aturan minum antasida sakit maag' }
+                    ],
+                    [
+                        { text: '💊 Vitamin C & Imunitas', callback_data: 'query_topic:konsumsi vitamin c harian' },
+                        { text: '💊 Panduan Minum Obat', callback_data: 'query_topic:panduan minum obat yang benar' }
+                    ],
+                    [
+                        { text: '🔙 Kembali ke Menu Utama', callback_data: 'menu_main' }
+                    ]
+                ]
+            },
+            daruratText: (
+                `🚨 *Panduan Kondisi Darurat & Tanda Bahaya (Red Flags)*\n` +
+                `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+                `Segera kunjungi **IGD Rumah Sakit terdekat** atau hubungi **119** jika mengalami tanda-tanda berikut:\n\n` +
+                `🔴 *Sesak napas berat* atau napas berbunyi keras\n` +
+                `🔴 *Nyeri dada hebat* menjalar ke lengan kiri/rahang\n` +
+                `🔴 *Penurunan kesadaran*, pingsan, atau kejang mendadak\n` +
+                `🔴 *Perdarahan hebat* yang tidak kunjung berhenti\n` +
+                `🔴 *Kelemahan anggota gerak sebelah* atau bicara pelo (tanda stroke)\n` +
+                `🔴 *Demam sangat tinggi (> 39.5°C)* dengan kaku leher\n` +
+                `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+                `⚠️ _TeleHealth tidak melayani kegawatdaruratan medis darurat langsung._`
+            ),
+            daruratInlineKeyboard: {
+                inline_keyboard: [
+                    [{ text: '👨‍⚕️ Konsultasi Dokter Jaga', callback_data: 'menu_dokter' }],
+                    [{ text: '🔙 Kembali ke Menu Utama', callback_data: 'menu_main' }]
+                ]
+            },
+            helpText: (
+                `ℹ️ *Bantuan & Panduan Penggunaan TeleHealth*\n` +
+                `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+                `🤖 *Cara Menggunakan Bot:*\n` +
+                `1. **Tanya Bebas:** Cukup ketik pertanyaan seperti _"Bagaimana mengatasi batuk berdahak?"_\n` +
+                `2. **Pustaka Tervalidasi:** Bot akan langsung memberikan jawaban bersumber jurnal & dokter.\n` +
+                `3. **Eskalasi Dokter:** Bila info belum ada, pertanyaan otomatis masuk ke antrian dokter jaga.\n` +
+                `4. **Cek Status:** Tekan tombol *📋 Status Konsultasi* untuk memantau tiket dokter Anda.\n\n` +
+                `📌 *Perintah Cepat:*\n` +
+                `• \`/start\` atau \`/menu\` - Buka menu utama\n` +
+                `• \`/gejala\` - Pilih daftar gejala umum\n` +
+                `• \`/dokter\` - Petunjuk konsultasi dokter\n` +
+                `• \`/status\` - Cek riwayat konsultasi dokter\n` +
+                `• \`/help\` - Buka panduan ini\n` +
+                `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+                `⚕️ _TeleHealth didesain untuk konsultasi medis yang aman dan akurat._`
+            ),
+            helpInlineKeyboard: {
+                inline_keyboard: [
+                    [{ text: '🩺 Cek Gejala Sekarang', callback_data: 'menu_gejala' }],
+                    [{ text: '🏠 Menu Utama', callback_data: 'menu_main' }]
+                ]
+            },
+            doctorPromptText: (
+                `👨‍⚕️ *Konsultasi Dokter Jaga TeleHealth*\n` +
+                `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+                `Silakan **ketik keluhan fisik atau pertanyaan kesehatan Anda** secara lengkap dan kirimkan ke chat ini.\n\n` +
+                `💡 *Tips Pertanyaan yang Baik:*\n` +
+                `• Sebutkan keluhan utama (contoh: nyeri ulu hati, demam, ruam)\n` +
+                `• Berapa lama keluhan sudah dirasakan\n` +
+                `• Riwayat obat atau penyakit yang sedang diderita\n\n` +
+                `Sistem kami akan mencocokkan ke database dan otomatis meneruskannya kepada dokter jika diperlukan.`
+            ),
+            doctorPromptInlineKeyboard: {
+                inline_keyboard: [
+                    [{ text: '🔙 Kembali ke Menu Utama', callback_data: 'menu_main' }]
+                ]
+            },
+            statusEmptyText: (
+                `📋 *Status Konsultasi Medis Anda*\n` +
+                `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
+                `Belum ada riwayat antrian konsultasi dokter untuk akun Anda.\n\n` +
+                `💡 _Ketik pertanyaan medis Anda kapan saja atau tekan menu di bawah untuk berkonsultasi._`
+            ),
+            statusEmptyInlineKeyboard: {
+                inline_keyboard: [
+                    [{ text: '👨‍⚕️ Konsultasi Sekarang', callback_data: 'menu_dokter' }],
+                    [{ text: '🏠 Menu Utama', callback_data: 'menu_main' }]
+                ]
+            },
+            statusListTitle: `📋 *Daftar Konsultasi Medis Anda*\nBerikut status antrian konsultasi dokter Anda:\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n`,
+            statusListFooter: `\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n_Notifikasi jawaban dokter akan dikirim otomatis ke chat ini begitu selesai._`,
+            statusInlineKeyboard: {
+                inline_keyboard: [
+                    [{ text: '🔄 Refresh Status', callback_data: 'menu_status' }],
+                    [
+                        { text: '👨‍⚕️ Konsultasi Baru', callback_data: 'menu_dokter' },
+                        { text: '🏠 Menu Utama', callback_data: 'menu_main' }
+                    ]
+                ]
+            },
+            actionButtonsKB: (questionId) => ({
+                inline_keyboard: [
+                    [{ text: '👨‍⚕️ Butuh Jawaban Dokter?', callback_data: `forward_doctor:${questionId}` }],
+                    [
+                        { text: '🩺 Cek Gejala Lain', callback_data: 'menu_gejala' },
+                        { text: '🏠 Menu Utama', callback_data: 'menu_main' }
+                    ]
+                ]
+            }),
+            actionButtonsDoctor: {
+                inline_keyboard: [
+                    [
+                        { text: '📋 Cek Antrian Saya', callback_data: 'menu_status' },
+                        { text: '🏠 Menu Utama', callback_data: 'menu_main' }
+                    ]
+                ]
+            },
+            actionButtonsNonHealth: {
+                inline_keyboard: [
+                    [
+                        { text: '🤒 Contoh: Penanganan Flu', callback_data: 'query_topic:penanganan flu batuk' },
+                        { text: '🤢 Contoh: Sakit Maag/GERD', callback_data: 'query_topic:gejala sakit maag' }
+                    ],
+                    [
+                        { text: '🏠 Menu Utama', callback_data: 'menu_main' }
+                    ]
+                ]
+            }
         };
     }
 }

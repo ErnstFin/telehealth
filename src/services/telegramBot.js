@@ -1,7 +1,7 @@
 /**
  * Telegram Bot & Chatbot Pipeline Service
  * Manages live Telegram bot connection with rich UI/UX (Inline & Reply Keyboards,
- * Status Tickets, Interactive Callbacks) matching TaskFlow standards.
+ * Status Tickets, Interactive Callbacks) with full Multilingual Support (English, Indonesian, Javanese, Sundanese).
  */
 
 require('dotenv').config();
@@ -12,85 +12,6 @@ const KnowledgeRetriever = require('./knowledgeRetriever');
 const ResponseGenerator = require('./responseGenerator');
 const DoctorService = require('./doctorService');
 const LanguageService = require('./languageService');
-
-// Persistent Reply Keyboard at the bottom of the chat
-const MAIN_REPLY_KEYBOARD = {
-    keyboard: [
-        [{ text: '🏠 Menu Utama' }, { text: '🩺 Cek Gejala & Topik' }],
-        [{ text: '👨‍⚕️ Tanya Dokter' }, { text: '📋 Status Konsultasi' }],
-        [{ text: 'ℹ️ Panduan & Bantuan' }]
-    ],
-    resize_keyboard: true,
-    is_persistent: true
-};
-
-// Main interactive inline keyboard
-const MAIN_INLINE_KEYBOARD = {
-    inline_keyboard: [
-        [
-            { text: '🤒 Cek Gejala Umum', callback_data: 'menu_gejala' },
-            { text: '💊 Info Obat & Terapi', callback_data: 'menu_obat' }
-        ],
-        [
-            { text: '👨‍⚕️ Tanya Dokter Jaga', callback_data: 'menu_dokter' },
-            { text: '📋 Status Konsultasi', callback_data: 'menu_status' }
-        ],
-        [
-            { text: '🚨 Panduan Darurat / IGD', callback_data: 'menu_darurat' },
-            { text: 'ℹ️ Panduan Bot', callback_data: 'menu_help' }
-        ]
-    ]
-};
-
-// Symptom exploration inline keyboard
-const GEJALA_INLINE_KEYBOARD = {
-    inline_keyboard: [
-        [
-            { text: '🤒 Flu, Batuk & Demam', callback_data: 'query_topic:penanganan flu batuk dan demam' },
-            { text: '🤢 Sakit Maag & Lambung', callback_data: 'query_topic:gejala sakit maag asam lambung gerd' }
-        ],
-        [
-            { text: '🤕 Sakit Kepala & Migrain', callback_data: 'query_topic:mengatasi sakit kepala migrain' },
-            { text: '🤧 Alergi & ISPA', callback_data: 'query_topic:alergi debu dan ispa batuk' }
-        ],
-        [
-            { text: '🩸 Hipertensi & Tensi', callback_data: 'query_topic:hipertensi tekanan darah tinggi' },
-            { text: '🦷 Sakit Gigi & Gusi', callback_data: 'query_topic:penanganan sakit gigi nyeri gusi' }
-        ],
-        [
-            { text: '🔙 Kembali ke Menu Utama', callback_data: 'menu_main' }
-        ]
-    ]
-};
-
-// Medication & Therapy exploration inline keyboard
-const OBAT_INLINE_KEYBOARD = {
-    inline_keyboard: [
-        [
-            { text: '💊 Paracetamol (Penurun Demam)', callback_data: 'query_topic:aturan minum paracetamol demam' },
-            { text: '💊 Antasida (Obat Lambung)', callback_data: 'query_topic:aturan minum antasida sakit maag' }
-        ],
-        [
-            { text: '💊 Vitamin C & Imunitas', callback_data: 'query_topic:konsumsi vitamin c harian' },
-            { text: '💊 Panduan Minum Obat', callback_data: 'query_topic:panduan minum obat yang benar' }
-        ],
-        [
-            { text: '🔙 Kembali ke Menu Utama', callback_data: 'menu_main' }
-        ]
-    ]
-};
-
-// Emergency & Red Flags inline keyboard
-const EMERGENCY_INLINE_KEYBOARD = {
-    inline_keyboard: [
-        [
-            { text: '👨‍⚕️ Konsultasi Dokter Jaga', callback_data: 'menu_dokter' }
-        ],
-        [
-            { text: '🔙 Kembali ke Menu Utama', callback_data: 'menu_main' }
-        ]
-    ]
-};
 
 class TelegramBotService {
     constructor() {
@@ -136,13 +57,31 @@ class TelegramBotService {
         }
     }
 
+    /**
+     * Look up user's preferred language from database
+     */
+    getUserLang(telegramUserId, chatId) {
+        const user = db.find('users', u => String(u.telegram_id) === String(telegramUserId || chatId))[0];
+        return (user && user.preferred_lang) || 'id';
+    }
+
+    /**
+     * Persist user's preferred language
+     */
+    setUserLang(telegramUserId, chatId, lang) {
+        const user = db.find('users', u => String(u.telegram_id) === String(telegramUserId || chatId))[0];
+        if (user) {
+            db.update('users', user.id, { preferred_lang: lang });
+        }
+    }
+
     registerHandlers() {
         if (!this.bot) return;
 
         this.bot.on('polling_error', (err) => {
             const msg = err.message || '';
             if (msg.includes('409') || msg.includes('Conflict')) {
-                console.warn('[Telegram Polling Warning] 409 Conflict: Sesi polling ganda terdeteksi. Pastikan hanya 1 server instance (misal Railway atau Local) yang aktif dengan token ini.');
+                console.warn('[Telegram Polling Warning] 409 Conflict: Sesi polling ganda terdeteksi. Pastikan hanya 1 server instance yang aktif.');
             } else {
                 console.warn('[Telegram Polling Warning]:', msg);
             }
@@ -150,27 +89,32 @@ class TelegramBotService {
 
         // 1. /start and /menu commands
         this.bot.onText(/\/(start|menu)/, async (msg) => {
-            await this.sendWelcomeMenu(msg.chat.id, msg.from && msg.from.first_name);
+            const lang = this.getUserLang(msg.from && msg.from.id, msg.chat.id);
+            await this.sendWelcomeMenu(msg.chat.id, msg.from && msg.from.first_name, null, lang);
         });
 
         // 2. /help command
         this.bot.onText(/\/help/, async (msg) => {
-            await this.sendHelpMessage(msg.chat.id);
+            const lang = this.getUserLang(msg.from && msg.from.id, msg.chat.id);
+            await this.sendHelpMessage(msg.chat.id, null, lang);
         });
 
         // 3. /status command
         this.bot.onText(/\/status/, async (msg) => {
-            await this.sendStatusMessage(msg.chat.id, msg.from && msg.from.id);
+            const lang = this.getUserLang(msg.from && msg.from.id, msg.chat.id);
+            await this.sendStatusMessage(msg.chat.id, msg.from && msg.from.id, null, lang);
         });
 
         // 4. /gejala command
         this.bot.onText(/\/gejala/, async (msg) => {
-            await this.sendGejalaMenu(msg.chat.id);
+            const lang = this.getUserLang(msg.from && msg.from.id, msg.chat.id);
+            await this.sendGejalaMenu(msg.chat.id, null, lang);
         });
 
         // 5. /dokter command
         this.bot.onText(/\/dokter/, async (msg) => {
-            await this.sendDoctorPrompt(msg.chat.id);
+            const lang = this.getUserLang(msg.from && msg.from.id, msg.chat.id);
+            await this.sendDoctorPrompt(msg.chat.id, lang);
         });
 
         // 6. Interactive Callback Query Handler (Button Clicks)
@@ -179,50 +123,54 @@ class TelegramBotService {
             const chatId = query.message ? query.message.chat.id : (query.from ? query.from.id : null);
             const userId = query.from ? query.from.id : null;
             const messageId = query.message ? query.message.message_id : null;
+            const userLang = this.getUserLang(userId, chatId);
 
-            // Immediately acknowledge callback query with visual feedback
+            // Acknowledge callback query with localized quick feedback
             try {
-                let ackText = 'Memproses...';
-                if (data === 'menu_status') ackText = '📋 Membuka status antrian...';
-                else if (data === 'menu_main') ackText = '🏠 Membuka Menu Utama...';
-                else if (data === 'menu_gejala') ackText = '🩺 Membuka daftar gejala...';
-                else if (data === 'menu_obat') ackText = '💊 Membuka panduan obat...';
-                else if (data === 'menu_darurat') ackText = '🚨 Membuka panduan darurat...';
-                else if (data === 'menu_help') ackText = 'ℹ️ Membuka panduan...';
-                else if (data === 'menu_dokter') ackText = '👨‍⚕️ Membuka form dokter...';
-                else if (data.startsWith('query_topic:')) ackText = '🔍 Mencari info medis...';
-                else if (data.startsWith('forward_doctor:')) ackText = '👨‍⚕️ Meneruskan ke dokter...';
+                let ackText = userLang === 'en' ? 'Processing...' : 'Memproses...';
+                if (data === 'menu_status') ackText = userLang === 'en' ? '📋 Opening queue status...' : '📋 Membuka status antrian...';
+                else if (data === 'menu_main') ackText = userLang === 'en' ? '🏠 Opening Main Menu...' : '🏠 Membuka Menu Utama...';
+                else if (data === 'menu_gejala') ackText = userLang === 'en' ? '🩺 Opening symptoms list...' : '🩺 Membuka daftar gejala...';
+                else if (data === 'menu_obat') ackText = userLang === 'en' ? '💊 Opening medications guide...' : '💊 Membuka panduan obat...';
+                else if (data === 'menu_darurat') ackText = userLang === 'en' ? '🚨 Opening emergency guide...' : '🚨 Membuka panduan darurat...';
+                else if (data === 'menu_help') ackText = userLang === 'en' ? 'ℹ️ Opening user guide...' : 'ℹ️ Membuka panduan...';
+                else if (data === 'menu_dokter') ackText = userLang === 'en' ? '👨‍⚕️ Opening doctor consultation...' : '👨‍⚕️ Membuka form dokter...';
+                else if (data.startsWith('query_topic:')) ackText = userLang === 'en' ? '🔍 Searching medical archive...' : '🔍 Mencari info medis...';
+                else if (data.startsWith('forward_doctor:')) ackText = userLang === 'en' ? '👨‍⚕️ Forwarding to doctor queue...' : '👨‍⚕️ Meneruskan ke dokter...';
                 await this.bot.answerCallbackQuery(query.id, { text: ackText, show_alert: false });
             } catch (e) {}
 
             if (!chatId) return;
-            console.log(`[Telegram Bot] 🔘 Button Clicked: "${data}" by @${(query.from && query.from.username) || (query.from && query.from.first_name) || chatId}`);
+            console.log(`[Telegram Bot] 🔘 Button Clicked: "${data}" by @${(query.from && query.from.username) || (query.from && query.from.first_name) || chatId} [Lang: ${userLang}]`);
 
             try {
                 if (data === 'menu_main') {
-                    await this.sendWelcomeMenu(chatId, (query.from && query.from.first_name) || 'Pengguna', messageId);
+                    await this.sendWelcomeMenu(chatId, (query.from && query.from.first_name) || 'User', messageId, userLang);
                 } else if (data === 'menu_gejala') {
-                    await this.sendGejalaMenu(chatId, messageId);
+                    await this.sendGejalaMenu(chatId, messageId, userLang);
                 } else if (data === 'menu_obat') {
-                    await this.sendObatMenu(chatId, messageId);
+                    await this.sendObatMenu(chatId, messageId, userLang);
                 } else if (data === 'menu_darurat') {
-                    await this.sendEmergencyGuide(chatId, messageId);
+                    await this.sendEmergencyGuide(chatId, messageId, userLang);
                 } else if (data === 'menu_help') {
-                    await this.sendHelpMessage(chatId, messageId);
+                    await this.sendHelpMessage(chatId, messageId, userLang);
                 } else if (data === 'menu_status') {
-                    await this.sendStatusMessage(chatId, userId, messageId);
+                    await this.sendStatusMessage(chatId, userId, messageId, userLang);
                 } else if (data === 'menu_dokter') {
-                    await this.sendDoctorPrompt(chatId);
+                    await this.sendDoctorPrompt(chatId, userLang);
                 } else if (data.startsWith('forward_doctor:')) {
                     const questionId = data.replace('forward_doctor:', '');
-                    await this.handleForwardQuestionToDoctor(chatId, userId, query.from, questionId);
+                    await this.handleForwardQuestionToDoctor(chatId, userId, query.from, questionId, userLang);
                 } else if (data.startsWith('query_topic:')) {
                     const topicQuery = data.replace('query_topic:', '');
                     await this.processUserQuestion(chatId, userId, query.from, topicQuery);
                 }
             } catch (cbErr) {
                 console.error('[Telegram Callback Error]:', cbErr.message);
-                await this.sendMessage(chatId, '⚠️ Terjadi kendala saat memproses pilihan Anda. Silakan ketik keluhan Anda secara langsung.');
+                const errorMsg = userLang === 'en'
+                    ? '⚠️ Error processing selection. Please type your medical question directly.'
+                    : '⚠️ Terjadi kendala saat memproses pilihan Anda. Silakan ketik keluhan Anda secara langsung.';
+                await this.sendMessage(chatId, errorMsg);
             }
         });
 
@@ -232,60 +180,58 @@ class TelegramBotService {
 
             const text = msg.text.trim();
             const fromUser = msg.from || {};
-            const firstName = fromUser.first_name || 'Pengguna';
+            const firstName = fromUser.first_name || 'User';
 
-            // Check reply keyboard commands
-            if (text === '🏠 Menu Utama') {
-                return this.sendWelcomeMenu(msg.chat.id, firstName);
+            // Detect language of the incoming message immediately
+            const detectedLang = LanguageService.detectLanguage(text);
+            this.setUserLang(fromUser.id, msg.chat.id, detectedLang);
+
+            // Check reply keyboard commands across all languages
+            if (/^(🏠\s*(Menu Utama|Main Menu))$/i.test(text)) {
+                return this.sendWelcomeMenu(msg.chat.id, firstName, null, detectedLang);
             }
-            if (text === '🩺 Cek Gejala & Topik') {
-                return this.sendGejalaMenu(msg.chat.id);
+            if (/^(🩺\s*(Cek Gejala & Topik|Symptoms & Topics|Check Symptoms & Topics|Priksa Gejala))$/i.test(text)) {
+                return this.sendGejalaMenu(msg.chat.id, null, detectedLang);
             }
-            if (text === '👨‍⚕️ Tanya Dokter') {
-                return this.sendDoctorPrompt(msg.chat.id);
+            if (/^(👨‍⚕️\s*(Tanya Dokter|Ask Doctor|Tanglet Dokter))$/i.test(text)) {
+                return this.sendDoctorPrompt(msg.chat.id, detectedLang);
             }
-            if (text === '📋 Status Konsultasi') {
-                return this.sendStatusMessage(msg.chat.id, fromUser.id);
+            if (/^(📋\s*(Status Konsultasi|Consultation Status))$/i.test(text)) {
+                return this.sendStatusMessage(msg.chat.id, fromUser.id, null, detectedLang);
             }
-            if (text === 'ℹ️ Panduan & Bantuan') {
-                return this.sendHelpMessage(msg.chat.id);
+            if (/^(ℹ️\s*(Panduan & Bantuan|Help & User Guide|Help & Guide|Bantuan))$/i.test(text)) {
+                return this.sendHelpMessage(msg.chat.id, null, detectedLang);
             }
 
             // Check common greetings or test queries
-            const cleanCheck = text.toLowerCase().replace(/[\.\,\!\?]/g, '').trim();
-            const greetingRegex = /^(tes|test|halo|hai|hi|hello|p|ping|salam|assalamu'?alaikum|assalamualaikum|start|menu|info|help|bantuan)$/i;
+            const cleanCheck = text.toLowerCase().replace(/[\.\,\!\?\#]/g, '').trim();
+            const greetingRegex = /^(tes|test|halo|hai|hi|hello|hey|good\s+(morning|afternoon|evening|night)|howdy|salam|assalamu'?alaikum|assalamualaikum|sugeng\s+(enjang|siang|sonten|dalu)|sampurasun|wilujeng|start|menu|info|help|bantuan|p|ping)$/i;
             if (greetingRegex.test(cleanCheck)) {
-                return this.sendWelcomeMenu(msg.chat.id, firstName);
+                return this.sendWelcomeMenu(msg.chat.id, firstName, null, detectedLang);
             }
 
-            // Normal health query
+            // Normal health or clinical query
             if (!text.startsWith('/')) {
-                console.log(`[Telegram Bot] 📩 Pesan masuk dari @${fromUser.username || firstName}: "${text}"`);
+                console.log(`[Telegram Bot] 📩 Message received from @${fromUser.username || firstName} [Lang: ${detectedLang}]: "${text}"`);
                 await this.processUserQuestion(msg.chat.id, fromUser.id, fromUser, text, msg.message_id);
             }
         });
     }
 
     /**
-     * Send Main Welcome Menu
+     * Send Main Welcome Menu (Multilingual)
      */
-    async sendWelcomeMenu(chatId, firstName, editMessageId = null) {
-        const welcomeText = (
-            `🏥 *TeleHealth Assistant* — Solusi Kesehatan Digital\n` +
-            `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-            `👋 Halo *${firstName || 'Pengguna'}*! Selamat datang di layanan asisten medis *TeleHealth*.\n\n` +
-            `Sistem kami menyediakan edukasi kesehatan berbasis literatur terverifikasi dan konsultasi langsung dengan dokter jaga.\n` +
-            `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-            `👇 *Pilih menu interaktif di bawah atau langsung ketik keluhan Anda:*`
-        );
+    async sendWelcomeMenu(chatId, firstName, editMessageId = null, lang = null) {
+        const userLang = lang || this.getUserLang(chatId, chatId);
+        const ui = LanguageService.getBotUIDictionary(userLang, firstName);
 
         if (editMessageId) {
             try {
-                await this.bot.editMessageText(welcomeText, {
+                await this.bot.editMessageText(ui.welcomeText, {
                     chat_id: chatId,
                     message_id: editMessageId,
                     parse_mode: 'Markdown',
-                    reply_markup: MAIN_INLINE_KEYBOARD
+                    reply_markup: ui.mainInlineKeyboard
                 });
                 return;
             } catch (e) {
@@ -293,177 +239,129 @@ class TelegramBotService {
             }
         }
 
-        await this.sendMessage(chatId, welcomeText, {
-            reply_markup: MAIN_INLINE_KEYBOARD
+        await this.sendMessage(chatId, ui.welcomeText, {
+            reply_markup: ui.mainInlineKeyboard
         });
 
-        // Also ensure bottom reply keyboard is set
-        await this.sendMessage(chatId, `💡 _Gunakan tombol di bawah untuk navigasi cepat kapan saja._`, {
-            reply_markup: MAIN_REPLY_KEYBOARD
+        // Also ensure bottom reply keyboard is localized
+        await this.sendMessage(chatId, ui.welcomeTip, {
+            reply_markup: ui.mainReplyKeyboard
         });
     }
 
     /**
-     * Send Symptom Exploration Menu
+     * Send Symptom Exploration Menu (Multilingual)
      */
-    async sendGejalaMenu(chatId, editMessageId = null) {
-        const text = (
-            `🩺 *Cek Gejala & Topik Kesehatan Populer*\n` +
-            `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-            `Pilih salah satu keluhan umum di bawah untuk melihat ringkasan klinis tervalidasi:\n`
-        );
+    async sendGejalaMenu(chatId, editMessageId = null, lang = null) {
+        const userLang = lang || this.getUserLang(chatId, chatId);
+        const ui = LanguageService.getBotUIDictionary(userLang);
 
         if (editMessageId) {
             try {
-                await this.bot.editMessageText(text, {
+                await this.bot.editMessageText(ui.gejalaText, {
                     chat_id: chatId,
                     message_id: editMessageId,
                     parse_mode: 'Markdown',
-                    reply_markup: GEJALA_INLINE_KEYBOARD
+                    reply_markup: ui.gejalaInlineKeyboard
                 });
                 return;
             } catch (e) {}
         }
 
-        await this.sendMessage(chatId, text, {
-            reply_markup: GEJALA_INLINE_KEYBOARD
+        await this.sendMessage(chatId, ui.gejalaText, {
+            reply_markup: ui.gejalaInlineKeyboard
         });
     }
 
     /**
-     * Send Medication Menu
+     * Send Medication Menu (Multilingual)
      */
-    async sendObatMenu(chatId, editMessageId = null) {
-        const text = (
-            `💊 *Panduan Informasi Obat & Terapi*\n` +
-            `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-            `Pilih topik obat umum di bawah untuk melihat aturan pakai dan anjuran keselamatan:\n`
-        );
+    async sendObatMenu(chatId, editMessageId = null, lang = null) {
+        const userLang = lang || this.getUserLang(chatId, chatId);
+        const ui = LanguageService.getBotUIDictionary(userLang);
 
         if (editMessageId) {
             try {
-                await this.bot.editMessageText(text, {
+                await this.bot.editMessageText(ui.obatText, {
                     chat_id: chatId,
                     message_id: editMessageId,
                     parse_mode: 'Markdown',
-                    reply_markup: OBAT_INLINE_KEYBOARD
+                    reply_markup: ui.obatInlineKeyboard
                 });
                 return;
             } catch (e) {}
         }
 
-        await this.sendMessage(chatId, text, {
-            reply_markup: OBAT_INLINE_KEYBOARD
+        await this.sendMessage(chatId, ui.obatText, {
+            reply_markup: ui.obatInlineKeyboard
         });
     }
 
     /**
-     * Send Emergency Guide
+     * Send Emergency Guide (Multilingual)
      */
-    async sendEmergencyGuide(chatId, editMessageId = null) {
-        const text = (
-            `🚨 *Panduan Kondisi Darurat & Tanda Bahaya (Red Flags)*\n` +
-            `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-            `Segera kunjungi **IGD Rumah Sakit terdekat** atau hubungi **119** jika mengalami tanda-tanda berikut:\n\n` +
-            `🔴 *Sesak napas berat* atau napas berbunyi keras\n` +
-            `🔴 *Nyeri dada hebat* menjalar ke lengan kiri/rahang\n` +
-            `🔴 *Penurunan kesadaran*, pingsan, atau kejang mendadak\n` +
-            `🔴 *Perdarahan hebat* yang tidak kunjung berhenti\n` +
-            `🔴 *Kelemahan anggota gerak sebelah* atau bicara pelo (tanda stroke)\n` +
-            `🔴 *Demam sangat tinggi (> 39.5°C)* dengan kaku leher\n` +
-            `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-            `⚠️ _TeleHealth tidak melayani kegawatdaruratan medis darurat langsung._`
-        );
+    async sendEmergencyGuide(chatId, editMessageId = null, lang = null) {
+        const userLang = lang || this.getUserLang(chatId, chatId);
+        const ui = LanguageService.getBotUIDictionary(userLang);
 
         if (editMessageId) {
             try {
-                await this.bot.editMessageText(text, {
+                await this.bot.editMessageText(ui.daruratText, {
                     chat_id: chatId,
                     message_id: editMessageId,
                     parse_mode: 'Markdown',
-                    reply_markup: EMERGENCY_INLINE_KEYBOARD
+                    reply_markup: ui.daruratInlineKeyboard
                 });
                 return;
             } catch (e) {}
         }
 
-        await this.sendMessage(chatId, text, {
-            reply_markup: EMERGENCY_INLINE_KEYBOARD
+        await this.sendMessage(chatId, ui.daruratText, {
+            reply_markup: ui.daruratInlineKeyboard
         });
     }
 
     /**
-     * Send Help Guide
+     * Send Help Guide (Multilingual)
      */
-    async sendHelpMessage(chatId, editMessageId = null) {
-        const text = (
-            `ℹ️ *Bantuan & Panduan Penggunaan TeleHealth*\n` +
-            `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-            `🤖 *Cara Menggunakan Bot:*\n` +
-            `1. **Tanya Bebas:** Cukup ketik pertanyaan seperti _"Bagaimana mengatasi batuk berdahak?"_\n` +
-            `2. **Pustaka Tervalidasi:** Bot akan langsung memberikan jawaban bersumber jurnal & dokter.\n` +
-            `3. **Eskalasi Dokter:** Bila info belum ada, pertanyaan otomatis masuk ke antrian dokter jaga.\n` +
-            `4. **Cek Status:** Tekan tombol *📋 Status Konsultasi* untuk memantau tiket dokter Anda.\n\n` +
-            `📌 *Perintah Cepat:*\n` +
-            `• \`/start\` atau \`/menu\` - Buka menu utama\n` +
-            `• \`/gejala\` - Pilih daftar gejala umum\n` +
-            `• \`/dokter\` - Petunjuk konsultasi dokter\n` +
-            `• \`/status\` - Cek riwayat konsultasi dokter\n` +
-            `• \`/help\` - Buka panduan ini\n` +
-            `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-            `⚕️ _TeleHealth didesain untuk konsultasi medis yang aman dan akurat._`
-        );
-
-        const keyboard = {
-            inline_keyboard: [
-                [{ text: '🩺 Cek Gejala Sekarang', callback_data: 'menu_gejala' }],
-                [{ text: '🏠 Menu Utama', callback_data: 'menu_main' }]
-            ]
-        };
+    async sendHelpMessage(chatId, editMessageId = null, lang = null) {
+        const userLang = lang || this.getUserLang(chatId, chatId);
+        const ui = LanguageService.getBotUIDictionary(userLang);
 
         if (editMessageId) {
             try {
-                await this.bot.editMessageText(text, {
+                await this.bot.editMessageText(ui.helpText, {
                     chat_id: chatId,
                     message_id: editMessageId,
                     parse_mode: 'Markdown',
-                    reply_markup: keyboard
+                    reply_markup: ui.helpInlineKeyboard
                 });
                 return;
             } catch (e) {}
         }
 
-        await this.sendMessage(chatId, text, { reply_markup: keyboard });
+        await this.sendMessage(chatId, ui.helpText, { reply_markup: ui.helpInlineKeyboard });
     }
 
     /**
-     * Send Doctor Consultation Prompt
+     * Send Doctor Consultation Prompt (Multilingual)
      */
-    async sendDoctorPrompt(chatId) {
-        const text = (
-            `👨‍⚕️ *Konsultasi Dokter Jaga TeleHealth*\n` +
-            `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-            `Silakan **ketik keluhan fisik atau pertanyaan kesehatan Anda** secara lengkap dan kirimkan ke chat ini.\n\n` +
-            `💡 *Tips Pertanyaan yang Baik:*\n` +
-            `• Sebutkan keluhan utama (contoh: nyeri ulu hati, demam, ruam)\n` +
-            `• Berapa lama keluhan sudah dirasakan\n` +
-            `• Riwayat obat atau penyakit yang sedang diderita\n\n` +
-            `Sistem kami akan mencocokkan ke database dan otomatis meneruskannya kepada dokter jika diperlukan.`
-        );
+    async sendDoctorPrompt(chatId, lang = null) {
+        const userLang = lang || this.getUserLang(chatId, chatId);
+        const ui = LanguageService.getBotUIDictionary(userLang);
 
-        await this.sendMessage(chatId, text, {
-            reply_markup: {
-                inline_keyboard: [
-                    [{ text: '🔙 Kembali ke Menu Utama', callback_data: 'menu_main' }]
-                ]
-            }
+        await this.sendMessage(chatId, ui.doctorPromptText, {
+            reply_markup: ui.doctorPromptInlineKeyboard
         });
     }
 
     /**
-     * Render User Doctor Questions Status (TaskFlow style ticket list)
+     * Render User Doctor Questions Status (Multilingual TaskFlow ticket list)
      */
-    async sendStatusMessage(chatId, userId, editMessageId = null) {
+    async sendStatusMessage(chatId, userId, editMessageId = null, lang = null) {
+        const userLang = lang || this.getUserLang(userId, chatId);
+        const ui = LanguageService.getBotUIDictionary(userLang);
+
         const userObj = userId ? db.find('users', u => String(u.telegram_id) === String(userId))[0] : null;
         const internalUserId = userObj ? userObj.id : null;
 
@@ -473,40 +371,27 @@ class TelegramBotService {
         );
 
         if (!questions || questions.length === 0) {
-            const emptyText = (
-                `📋 *Status Konsultasi Medis Anda*\n` +
-                `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-                `Belum ada riwayat antrian konsultasi dokter untuk akun Anda.\n\n` +
-                `💡 _Ketik pertanyaan medis Anda kapan saja atau tekan menu di bawah untuk berkonsultasi._`
-            );
-            const emptyKeyboard = {
-                inline_keyboard: [
-                    [{ text: '👨‍⚕️ Konsultasi Sekarang', callback_data: 'menu_dokter' }],
-                    [{ text: '🏠 Menu Utama', callback_data: 'menu_main' }]
-                ]
-            };
-
             if (editMessageId) {
                 try {
-                    await this.bot.editMessageText(emptyText, {
+                    await this.bot.editMessageText(ui.statusEmptyText, {
                         chat_id: chatId,
                         message_id: editMessageId,
                         parse_mode: 'Markdown',
-                        reply_markup: emptyKeyboard
+                        reply_markup: ui.statusEmptyInlineKeyboard
                     });
                     return;
                 } catch (e) {
                     try {
-                        await this.bot.editMessageText(emptyText, {
+                        await this.bot.editMessageText(ui.statusEmptyText, {
                             chat_id: chatId,
                             message_id: editMessageId,
-                            reply_markup: emptyKeyboard
+                            reply_markup: ui.statusEmptyInlineKeyboard
                         });
                         return;
                     } catch (e2) {}
                 }
             }
-            return this.sendMessage(chatId, emptyText, { reply_markup: emptyKeyboard });
+            return this.sendMessage(chatId, ui.statusEmptyText, { reply_markup: ui.statusEmptyInlineKeyboard });
         }
 
         questions.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
@@ -514,47 +399,58 @@ class TelegramBotService {
 
         let statusList = recent.map(q => {
             let statusBadge = '';
-            if (q.status === 'WAITING') {
-                statusBadge = `🟢 *[#DQ-${q.id}]* ⏳ *WAITING (Dalam Antrian)*`;
-            } else if (q.status === 'ASSIGNED') {
-                statusBadge = `🟡 *[#DQ-${q.id}]* 🩺 *ASSIGNED (Ditangani ${q.assigned_doctor_name || 'Dokter'})*`;
-            } else if (q.status === 'ANSWERED') {
-                statusBadge = `✅ *[#DQ-${q.id}]* 👨‍⚕️ *ANSWERED (Selesai)*`;
+            if (userLang === 'en') {
+                if (q.status === 'WAITING') {
+                    statusBadge = `🟢 *[#DQ-${q.id}]* ⏳ *WAITING (In Doctor Queue)*`;
+                } else if (q.status === 'ASSIGNED') {
+                    statusBadge = `🟡 *[#DQ-${q.id}]* 🩺 *ASSIGNED (With ${q.assigned_doctor_name || 'On-Call Doctor'})*`;
+                } else if (q.status === 'ANSWERED') {
+                    statusBadge = `✅ *[#DQ-${q.id}]* 👨‍⚕️ *ANSWERED (Completed)*`;
+                } else {
+                    statusBadge = `⚪ *[#DQ-${q.id}]* *${q.status}*`;
+                }
+            } else if (userLang === 'jv') {
+                if (q.status === 'WAITING') {
+                    statusBadge = `🟢 *[#DQ-${q.id}]* ⏳ *WAITING (Ngentosi Dokter)*`;
+                } else if (q.status === 'ASSIGNED') {
+                    statusBadge = `🟡 *[#DQ-${q.id}]* 🩺 *ASSIGNED (Dipunpriksa ${q.assigned_doctor_name || 'Dokter'})*`;
+                } else if (q.status === 'ANSWERED') {
+                    statusBadge = `✅ *[#DQ-${q.id}]* 👨‍⚕️ *ANSWERED (Sampun Rampung)*`;
+                } else {
+                    statusBadge = `⚪ *[#DQ-${q.id}]* *${q.status}*`;
+                }
             } else {
-                statusBadge = `⚪ *[#DQ-${q.id}]* *${q.status}*`;
+                if (q.status === 'WAITING') {
+                    statusBadge = `🟢 *[#DQ-${q.id}]* ⏳ *WAITING (Dalam Antrian)*`;
+                } else if (q.status === 'ASSIGNED') {
+                    statusBadge = `🟡 *[#DQ-${q.id}]* 🩺 *ASSIGNED (Ditangani ${q.assigned_doctor_name || 'Dokter'})*`;
+                } else if (q.status === 'ANSWERED') {
+                    statusBadge = `✅ *[#DQ-${q.id}]* 👨‍⚕️ *ANSWERED (Selesai)*`;
+                } else {
+                    statusBadge = `⚪ *[#DQ-${q.id}]* *${q.status}*`;
+                }
             }
 
-            const timeStr = new Date(q.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-            const dateStr = new Date(q.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+            const locale = userLang === 'en' ? 'en-US' : 'id-ID';
+            const timeStr = new Date(q.created_at).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+            const dateStr = new Date(q.created_at).toLocaleDateString(locale, { day: 'numeric', month: 'short' });
             const rawText = q.question_text || '';
             const safeText = rawText.replace(/[*_`\[\]]/g, '');
             const truncatedText = safeText.length > 50 ? safeText.substring(0, 47) + '...' : safeText;
+            const timeLabel = userLang === 'en' ? 'Time' : 'Waktu';
 
             return (
                 `${statusBadge}\n` +
                 `📝 "${truncatedText}"\n` +
-                `⏰ Waktu: ${dateStr} ${timeStr}\n`
+                `⏰ ${timeLabel}: ${dateStr} ${timeStr}\n`
             );
         }).join('\n');
 
         const fullText = (
-            `📋 *Daftar Konsultasi Medis Anda*\n` +
-            `Berikut status antrian konsultasi dokter Anda:\n` +
-            `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-            `${statusList}\n` +
-            `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-            `_Notifikasi jawaban dokter akan dikirim otomatis ke chat ini begitu selesai._`
+            `${ui.statusListTitle}` +
+            `${statusList}` +
+            `${ui.statusListFooter}`
         );
-
-        const keyboard = {
-            inline_keyboard: [
-                [{ text: '🔄 Refresh Status', callback_data: 'menu_status' }],
-                [
-                    { text: '👨‍⚕️ Konsultasi Baru', callback_data: 'menu_dokter' },
-                    { text: '🏠 Menu Utama', callback_data: 'menu_main' }
-                ]
-            ]
-        };
 
         if (editMessageId) {
             try {
@@ -562,7 +458,7 @@ class TelegramBotService {
                     chat_id: chatId,
                     message_id: editMessageId,
                     parse_mode: 'Markdown',
-                    reply_markup: keyboard
+                    reply_markup: ui.statusInlineKeyboard
                 });
                 return;
             } catch (e) {
@@ -570,23 +466,25 @@ class TelegramBotService {
                     await this.bot.editMessageText(fullText, {
                         chat_id: chatId,
                         message_id: editMessageId,
-                        reply_markup: keyboard
+                        reply_markup: ui.statusInlineKeyboard
                     });
                     return;
                 } catch (e2) {}
             }
         }
 
-        await this.sendMessage(chatId, fullText, { reply_markup: keyboard });
+        await this.sendMessage(chatId, fullText, { reply_markup: ui.statusInlineKeyboard });
     }
 
     /**
-     * Forward an existing question explicitly to doctor queue on user click
+     * Forward an existing question explicitly to doctor queue on user click (Multilingual)
      */
-    async handleForwardQuestionToDoctor(chatId, userId, from, questionId) {
+    async handleForwardQuestionToDoctor(chatId, userId, from, questionId, lang = null) {
+        const userLang = lang || this.getUserLang(userId, chatId);
         const qRecord = db.findById('questions', questionId);
         if (!qRecord) {
-            return this.sendMessage(chatId, 'Pertanyaan tidak ditemukan atau sudah kadaluarsa.');
+            const notFoundMsg = userLang === 'en' ? 'Inquiry not found or expired.' : 'Pertanyaan tidak ditemukan atau sudah kadaluarsa.';
+            return this.sendMessage(chatId, notFoundMsg);
         }
 
         const doctorQuestion = DoctorService.enqueueQuestion({
@@ -596,20 +494,16 @@ class TelegramBotService {
             questionText: qRecord.question_text
         });
 
-        const ticketNotice = ResponseGenerator.formatDoctorFallbackNotice(doctorQuestion.id, qRecord.question_text);
+        const ticketNotice = ResponseGenerator.formatDoctorFallbackNotice(doctorQuestion.id, qRecord.question_text, userLang);
+        const ui = LanguageService.getBotUIDictionary(userLang);
 
         await this.sendMessage(chatId, ticketNotice, {
-            reply_markup: {
-                inline_keyboard: [
-                    [{ text: '📋 Cek Status Antrian', callback_data: 'menu_status' }],
-                    [{ text: '🏠 Menu Utama', callback_data: 'menu_main' }]
-                ]
-            }
+            reply_markup: ui.actionButtonsDoctor
         });
     }
 
     /**
-     * Process user question through pipeline and reply with interactive buttons
+     * Process user question through pipeline and reply with interactive buttons (Multilingual)
      */
     async processUserQuestion(chatId, userId, from, text, messageId = null) {
         const result = await this.handleIncomingMessage({
@@ -624,41 +518,16 @@ class TelegramBotService {
 
         if (!result) return;
 
+        const lang = result.language || 'id';
+        const ui = LanguageService.getBotUIDictionary(lang);
         let replyMarkup = null;
 
         if (result.status === 'ANSWERED_BY_KB') {
-            replyMarkup = {
-                inline_keyboard: [
-                    [
-                        { text: '👨‍⚕️ Butuh Jawaban Dokter?', callback_data: `forward_doctor:${result.questionId}` }
-                    ],
-                    [
-                        { text: '🩺 Cek Gejala Lain', callback_data: 'menu_gejala' },
-                        { text: '🏠 Menu Utama', callback_data: 'menu_main' }
-                    ]
-                ]
-            };
+            replyMarkup = ui.actionButtonsKB(result.questionId);
         } else if (result.status === 'FORWARDED_TO_DOCTOR') {
-            replyMarkup = {
-                inline_keyboard: [
-                    [
-                        { text: '📋 Cek Antrian Saya', callback_data: 'menu_status' },
-                        { text: '🏠 Menu Utama', callback_data: 'menu_main' }
-                    ]
-                ]
-            };
+            replyMarkup = ui.actionButtonsDoctor;
         } else if (result.status === 'REJECTED_NON_HEALTH') {
-            replyMarkup = {
-                inline_keyboard: [
-                    [
-                        { text: '🤒 Contoh: Penanganan Flu', callback_data: 'query_topic:penanganan flu batuk' },
-                        { text: '🤢 Contoh: Sakit Maag/GERD', callback_data: 'query_topic:gejala sakit maag' }
-                    ],
-                    [
-                        { text: '🏠 Menu Utama', callback_data: 'menu_main' }
-                    ]
-                ]
-            };
+            replyMarkup = ui.actionButtonsNonHealth;
         }
 
         await this.sendMessage(chatId, result.responseMessage, {
@@ -674,7 +543,7 @@ class TelegramBotService {
         const chatId = String(telegramChatId || 'sim-user-01');
         const userLang = LanguageService.detectLanguage(cleanText);
 
-        // 1. Ensure user exists in database
+        // 1. Ensure user exists in database and remember preferred language
         let user = db.find('users', u => String(u.telegram_id) === String(telegramUserId || chatId))[0];
         if (!user) {
             user = db.insert('users', {
@@ -682,8 +551,11 @@ class TelegramBotService {
                 username: username || 'user_' + chatId,
                 first_name: firstName || 'User',
                 last_name: lastName || '',
-                phone_number: null
+                phone_number: null,
+                preferred_lang: userLang
             });
+        } else {
+            db.update('users', user.id, { preferred_lang: userLang });
         }
 
         // 2. FIRST: Search Active Knowledge Base (with multi-language synonym bridging)
@@ -797,16 +669,19 @@ class TelegramBotService {
         if (update.message && update.message.text) {
             const msg = update.message;
             const text = msg.text.trim();
+            const userLang = LanguageService.detectLanguage(text);
+            this.setUserLang(msg.from && msg.from.id, msg.chat.id, userLang);
+
             if (text.startsWith('/start') || text.startsWith('/menu')) {
-                await this.sendWelcomeMenu(msg.chat.id, msg.from && msg.from.first_name);
+                await this.sendWelcomeMenu(msg.chat.id, msg.from && msg.from.first_name, null, userLang);
             } else if (text.startsWith('/help')) {
-                await this.sendHelpMessage(msg.chat.id);
+                await this.sendHelpMessage(msg.chat.id, null, userLang);
             } else if (text.startsWith('/gejala')) {
-                await this.sendGejalaMenu(msg.chat.id);
+                await this.sendGejalaMenu(msg.chat.id, null, userLang);
             } else if (text.startsWith('/dokter')) {
-                await this.sendDoctorPrompt(msg.chat.id);
+                await this.sendDoctorPrompt(msg.chat.id, userLang);
             } else if (text.startsWith('/status')) {
-                await this.sendStatusMessage(msg.chat.id, msg.from && msg.from.id);
+                await this.sendStatusMessage(msg.chat.id, msg.from && msg.from.id, null, userLang);
             } else {
                 await this.processUserQuestion(msg.chat.id, msg.from && msg.from.id, msg.from || {}, text, msg.message_id);
             }
@@ -816,6 +691,7 @@ class TelegramBotService {
             const chatId = query.message ? query.message.chat.id : (query.from ? query.from.id : null);
             const userId = query.from ? query.from.id : null;
             const messageId = query.message ? query.message.message_id : null;
+            const userLang = this.getUserLang(userId, chatId);
 
             if (this.bot) {
                 try {
@@ -825,22 +701,22 @@ class TelegramBotService {
 
             if (!chatId) return;
             if (data === 'menu_main') {
-                await this.sendWelcomeMenu(chatId, (query.from && query.from.first_name) || 'Pengguna', messageId);
+                await this.sendWelcomeMenu(chatId, (query.from && query.from.first_name) || 'User', messageId, userLang);
             } else if (data === 'menu_gejala') {
-                await this.sendGejalaMenu(chatId, messageId);
+                await this.sendGejalaMenu(chatId, messageId, userLang);
             } else if (data === 'menu_obat') {
-                await this.sendObatMenu(chatId, messageId);
+                await this.sendObatMenu(chatId, messageId, userLang);
             } else if (data === 'menu_darurat') {
-                await this.sendEmergencyGuide(chatId, messageId);
+                await this.sendEmergencyGuide(chatId, messageId, userLang);
             } else if (data === 'menu_help') {
-                await this.sendHelpMessage(chatId, messageId);
+                await this.sendHelpMessage(chatId, messageId, userLang);
             } else if (data === 'menu_status') {
-                await this.sendStatusMessage(chatId, userId, messageId);
+                await this.sendStatusMessage(chatId, userId, messageId, userLang);
             } else if (data === 'menu_dokter') {
-                await this.sendDoctorPrompt(chatId);
+                await this.sendDoctorPrompt(chatId, userLang);
             } else if (data.startsWith('forward_doctor:')) {
                 const qId = data.replace('forward_doctor:', '');
-                await this.handleForwardQuestionToDoctor(chatId, userId, query.from, qId);
+                await this.handleForwardQuestionToDoctor(chatId, userId, query.from, qId, userLang);
             } else if (data.startsWith('query_topic:')) {
                 const topic = data.replace('query_topic:', '');
                 await this.processUserQuestion(chatId, userId, query.from, topic);
@@ -877,4 +753,3 @@ class TelegramBotService {
 }
 
 module.exports = new TelegramBotService();
-

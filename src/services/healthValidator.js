@@ -214,9 +214,9 @@ class HealthValidator {
     static getNonHealthResponse(lang = 'id') {
         if (lang === 'en') {
             return (
-                `🩺 *TeleHealth Specialized Medical Assistant*\n` +
+                `🩺 *TeleHealth AI Assistant* — Specialized Healthcare Solution\n` +
                 `━━━━━━━━━━━━━━━━━━━━━━━━━━\n` +
-                `Sorry, **TeleHealth** is an assistant exclusively dedicated to **healthcare and clinical inquiries**.\n\n` +
+                `Sorry, **TeleHealth** is an assistant exclusively dedicated to **healthcare and clinical medical inquiries**.\n\n` +
                 `Our service is designed to answer questions regarding:\n` +
                 `• 🌡️ *Disease symptoms, first aid & self-care*\n` +
                 `• 🩺 *Clinical condition explanations & medication guides*\n` +
