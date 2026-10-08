@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS users (
     first_name VARCHAR(150),
     last_name VARCHAR(150),
     phone_number VARCHAR(50),
+    preferred_lang VARCHAR(10) DEFAULT 'id',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
