@@ -111,7 +111,7 @@ async function runGuardrailTests() {
             telegramChatId: 'test-user-gerd'
         });
         assert('GERD query returns ANSWERED_BY_KB', gerdRes.data.data.status === 'ANSWERED_BY_KB');
-        assert('Matched Knowledge is Maag & GERD', gerdRes.data.data.matchedKnowledge.id === 5);
+        assert('Matched Knowledge is Maag / Gastritis / Dispepsia', gerdRes.data.data.matchedKnowledge.title.includes('Gastritis') || gerdRes.data.data.matchedKnowledge.title.includes('Dispepsia'));
         assert('Response mentions small frequent meals / antasida', gerdRes.data.data.responseMessage.includes('antasida') || gerdRes.data.data.responseMessage.includes('Makan'));
 
         // --- RETRIEVAL TEST 2: Flu & Respiratory (Category 1) Accuracy
@@ -130,16 +130,16 @@ async function runGuardrailTests() {
             telegramChatId: 'test-user-head'
         });
         assert('Headache query returns ANSWERED_BY_KB', headRes.data.data.status === 'ANSWERED_BY_KB');
-        assert('Matched Knowledge is Tension Headache (ID 3)', headRes.data.data.matchedKnowledge.id === 3);
+        assert('Matched Knowledge is Tension Headache', headRes.data.data.matchedKnowledge.title.includes('Sakit Kepala'));
 
-        // --- RETRIEVAL TEST 4: Iron Deficiency Anemia (Category 4) Accuracy
-        console.log('\n--- RETRIEVAL 4: Accurate Matching of Anemia ---');
-        const anemiaRes = await makeRequest('POST', '/api/chat/ask', {
-            text: 'Badan saya sering lemas letih lesu pucat dan kadar hemoglobin hb rendah',
-            telegramChatId: 'test-user-anemia'
+        // --- RETRIEVAL TEST 4: Mialgia / Nyeri Otot Accuracy
+        console.log('\n--- RETRIEVAL 4: Accurate Matching of Mialgia (Nyeri Otot) ---');
+        const mialgiaRes = await makeRequest('POST', '/api/chat/ask', {
+            text: 'Otot pundak dan paha saya pegal-pegal dan sakit semua setelah aktivitas fisik kemarin',
+            telegramChatId: 'test-user-mialgia'
         });
-        assert('Anemia query returns ANSWERED_BY_KB', anemiaRes.data.data.status === 'ANSWERED_BY_KB');
-        assert('Matched Knowledge is Anemia (ID 4)', anemiaRes.data.data.matchedKnowledge.id === 4);
+        assert('Mialgia query returns ANSWERED_BY_KB', mialgiaRes.data.data.status === 'ANSWERED_BY_KB');
+        assert('Matched Knowledge is Mialgia (Nyeri Otot)', mialgiaRes.data.data.matchedKnowledge.title.includes('Mialgia'));
 
         // --- RETRIEVAL TEST 5: Clean Doctor Forwarding for Unanswered Health Query
         console.log('\n--- RETRIEVAL 5: Clean Forwarding to Doctor Queue for Unindexed Symptoms ---');

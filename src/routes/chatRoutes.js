@@ -52,6 +52,68 @@ const handleWebhook = async (req, res) => {
 router.post('/telegram-webhook', handleWebhook);
 router.post('/webhook', handleWebhook);
 
+const anamnesisService = require('../services/anamnesisService');
+
+// Anamnesis Sacred Seven Endpoints
+router.post('/anamnesis/start', (req, res) => {
+    try {
+        const { chatId = 'web-user', complaint = '', lang = 'id' } = req.body;
+        const result = anamnesisService.startSession(chatId, complaint, lang);
+        res.json({ success: true, data: result });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+router.post('/anamnesis/answer', async (req, res) => {
+    try {
+        const { chatId = 'web-user', answer = '' } = req.body;
+        const result = await anamnesisService.processAnswer(chatId, answer);
+        res.json({ success: true, data: result });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+router.post('/anamnesis/early-accept', async (req, res) => {
+    try {
+        const { chatId = 'web-user' } = req.body;
+        const result = await anamnesisService.acceptEarlyExit(chatId);
+        res.json({ success: true, data: result });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+router.post('/anamnesis/early-continue', (req, res) => {
+    try {
+        const { chatId = 'web-user' } = req.body;
+        const result = anamnesisService.continueAnamnesis(chatId);
+        res.json({ success: true, data: result });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+router.post('/anamnesis/cancel', (req, res) => {
+    try {
+        const { chatId = 'web-user' } = req.body;
+        anamnesisService.cancelSession(chatId);
+        res.json({ success: true, message: 'Anamnesis session cancelled.' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+router.get('/anamnesis/session/:chatId', (req, res) => {
+    try {
+        const session = anamnesisService.getSession(req.params.chatId);
+        res.json({ success: true, active: Boolean(session), session });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Chat History
 router.get('/history', (req, res) => {
     try {

@@ -7,7 +7,7 @@
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
     "n8n": "npx n8n",
-    "test": "node test/feature_upgrade_test.js && node test/api_test.js && node test/document_import_test.js"
+    "test": "node test/feature_upgrade_test.js && node test/api_test.js && node test/document_import_test.js && node test/anamnesis_test.js"
   },
   "keywords": [
     "telehealth",

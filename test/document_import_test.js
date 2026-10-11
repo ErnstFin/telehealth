@@ -55,7 +55,7 @@ async function runDocTests() {
     // Clean only test-specific artifacts
     const initialKnowledge = db.find('knowledge');
     for (const k of initialKnowledge) {
-        if (k.title && k.title.startsWith('[TEST]')) {
+        if ((k.title && (k.title.startsWith('[TEST]') || k.title.includes('Tata Laksana Terkini'))) || k.id > 36) {
             db.delete('knowledge', k.id);
         }
     }

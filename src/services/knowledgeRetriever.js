@@ -26,11 +26,14 @@ const HIGH_SPECIFICITY_TERMS = new Set([
     'paracetamol', 'ibuprofen', 'antasida', 'gout', 'ispa', 'tonsilitis', 'influenza',
     'batuk', 'demam', 'lambung', 'jantung', 'tensi', 'kolesterol', 'diabetes',
     'amandel', 'bronkitis', 'asma', 'hemoglobin', 'diare', 'konstipasi', 'sembelit',
-    'sendi', 'urat', 'myalgia', 'pucat', 'dispepsia', 'apendisitis', 'sinusitis',
+    'sendi', 'urat', 'myalgia', 'mialgia', 'pucat', 'dispepsia', 'apendisitis', 'sinusitis',
     'lemas', 'letih', 'lesu', 'puyeng', 'meriang', 'menggigil', 'kembung', 'perih',
     'tuberculosis', 'tbc', 'tb', 'fungal', 'jamur', 'candida', 'coinfection', 'koinfeksi',
     'sputum', 'mdr', 'xdr', 'resistan', 'resistansi',
-    'database', 'sql', 'programming', 'design', 'normalisasi', 'tabel', 'rendang', 'resep'
+    'faringitis', 'nasofaringitis', 'gonartrosis', 'osteoartritis', 'eksem', 'eksim', 'dermatitis',
+    'konjungtivitis', 'dispnea', 'koma', 'konvulsi', 'kejang', 'sepsis', 'syok',
+    'hipoglikemia', 'ketoasidosis', 'kad', 'melena', 'intrakranial', 'peritonitis',
+    'keracunan', 'intoksikasi', 'muntaber', 'poliuria', 'polidipsia', 'polifagia'
 ]);
 
 const LOW_SPECIFICITY_TERMS = new Set([
@@ -41,12 +44,15 @@ const LOW_SPECIFICITY_TERMS = new Set([
 ]);
 
 const CATEGORY_KEYWORDS_MAP = {
-    1: ['flu', 'pilek', 'influenza', 'batuk', 'bersin', 'ispa', 'laringitis', 'faringitis', 'asma', 'bronkitis', 'paru', 'pulmonary', 'sesak napas', 'hidung tersumbat', 'tenggorokan', 'sputum'],
-    2: ['demam', 'panas tinggi', 'menggigil', 'infeksi', 'fungal', 'jamur', 'candida', 'coinfection', 'koinfeksi', 'tipes', 'tifoid', 'dbd', 'dengue', 'malaria', 'suhu', 'meriang', 'asam urat', 'gout', 'sendi', 'tuberculosis', 'tbc', 'resistan'],
-    3: ['sakit kepala', 'migrain', 'pusing', 'vertigo', 'tension headache', 'kepala berdenyut', 'neurologi', 'saraf', 'kebas', 'kesemutan', 'otak'],
-    4: ['anemia', 'hemoglobin', 'hb', 'kurang darah', 'tekanan darah', 'hipertensi', 'hipotensi', 'tensi', 'jantung', 'kolesterol', 'angina', 'kardiovaskular', 'pembuluh darah', 'pucat', 'lemas letih lesu'],
-    5: ['lambung', 'gerd', 'gastritis', 'maag', 'asam lambung', 'dispepsia', 'diare', 'konstipasi', 'sembelit', 'usus', 'mual', 'muntah', 'perut kembung', 'pencernaan', 'ulu hati', 'perih'],
-    6: ['anak', 'balita', 'bayi', 'pediatri', 'imunisasi', 'campak', 'stunting', 'tumbuh kembang', 'kejang demam', 'demam anak', 'nutrisi anak']
+    1: ['flu', 'pilek', 'influenza', 'batuk', 'bersin', 'ispa', 'laringitis', 'faringitis', 'asma', 'bronkitis', 'paru', 'pulmonary', 'sesak napas', 'hidung tersumbat', 'tenggorokan', 'sputum', 'dispnea', 'amandel', 'tonsilitis', 'nasofaringitis', 'gagal napas'],
+    2: ['demam', 'panas tinggi', 'menggigil', 'infeksi', 'fungal', 'jamur', 'candida', 'coinfection', 'koinfeksi', 'suhu', 'meriang', 'hiv', 'sepsis', 'parasitik', 'tuberculosis', 'tbc'],
+    3: ['sakit kepala', 'migrain', 'pusing', 'vertigo', 'tension headache', 'kepala berdenyut', 'neurologi', 'saraf', 'kebas', 'kesemutan', 'otak', 'stroke', 'kejang', 'koma', 'konvulsi', 'cedera kepala', 'intrakranial', 'cephalgia'],
+    4: ['anemia', 'hemoglobin', 'hb', 'kurang darah', 'tekanan darah', 'hipertensi', 'hipotensi', 'tensi', 'jantung', 'angina', 'kardiovaskular', 'pembuluh darah', 'infark miokard', 'nyeri dada', 'chest pain', 'syok', 'serangan jantung'],
+    5: ['lambung', 'gerd', 'gastritis', 'maag', 'asam lambung', 'dispepsia', 'diare', 'konstipasi', 'sembelit', 'usus', 'mual', 'muntah', 'perut kembung', 'pencernaan', 'ulu hati', 'perih', 'akut abdomen', 'melena', 'keracunan makanan', 'intoksikasi', 'peritonitis', 'muntaber'],
+    6: ['diabetes', 'kencing manis', 'gula darah', 'insulin', 'hipoglikemia', 'ketoasidosis', 'kad', 'poliuria', 'polidipsia', 'polifagia'],
+    7: ['otot', 'sendi', 'mialgia', 'pegal', 'kaku', 'gonartrosis', 'osteoartritis', 'lutut', 'punggung', 'low back pain', 'lbp', 'pinggang', 'linu', 'krepitasi'],
+    8: ['kulit', 'mata', 'eksem', 'eksim', 'dermatitis', 'gatal', 'konjungtivitis', 'belekan', 'belek', 'ginjal', 'gagal ginjal', 'aki', 'kencing sedikit', 'anuria', 'oliguria', 'mata merah'],
+    9: ['umum', 'panduan', 'kesehatan', 'triase']
 };
 
 // Bilingual & Medical Concept Synonyms
@@ -324,7 +330,7 @@ class KnowledgeRetriever {
 
         // 3. Title Match Bonus (Additive for specific topical keywords in title)
         let titleBonus = 0;
-        const specificTitleMatches = questionTokens.filter(q => this.matchesToken(titleTokens, q) && !LOW_SPECIFICITY_TERMS.has(q) && q.length > 3);
+        const specificTitleMatches = questionTokens.filter(q => this.matchesToken(titleTokens, q) && !LOW_SPECIFICITY_TERMS.has(q) && q.length >= 3);
         if (specificTitleMatches.length >= 1) {
             titleBonus = Math.min(0.25, specificTitleMatches.length * 0.12);
         }

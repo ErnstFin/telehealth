@@ -12,6 +12,7 @@ const KnowledgeRetriever = require('./knowledgeRetriever');
 const ResponseGenerator = require('./responseGenerator');
 const DoctorService = require('./doctorService');
 const LanguageService = require('./languageService');
+const AnamnesisService = require('./anamnesisService');
 
 class TelegramBotService {
     constructor() {
@@ -109,6 +110,10 @@ class TelegramBotService {
                 let ackText = userLang === 'en' ? 'Processing...' : 'Memproses...';
                 if (data === 'menu_status') ackText = userLang === 'en' ? '📋 Opening queue status...' : '📋 Membuka status antrian...';
                 else if (data === 'menu_main') ackText = userLang === 'en' ? '🏠 Opening Main Menu...' : '🏠 Membuka Menu Utama...';
+                else if (data === 'menu_anamnesis') ackText = userLang === 'en' ? '🩺 Starting Sacred Seven Anamnesis...' : '🩺 Memulai Konsultasi Sacred Seven...';
+                else if (data.startsWith('anam_val:')) ackText = userLang === 'en' ? '✅ Step saved, analyzing...' : '✅ Jawaban disimpan, menganalisis...';
+                else if (data === 'anam_early_accept') ackText = userLang === 'en' ? '⚡ Opening early diagnosis...' : '⚡ Menampilkan diagnosa awal...';
+                else if (data === 'anam_early_continue') ackText = userLang === 'en' ? '📝 Continuing anamnesis...' : '📝 Melanjutkan Sacred Seven...';
                 else if (data === 'menu_gejala') ackText = userLang === 'en' ? '🩺 Opening symptoms list...' : '🩺 Membuka daftar gejala...';
                 else if (data === 'menu_obat') ackText = userLang === 'en' ? '💊 Opening medications guide...' : '💊 Membuka panduan obat...';
                 else if (data === 'menu_darurat') ackText = userLang === 'en' ? '🚨 Opening emergency guide...' : '🚨 Membuka panduan darurat...';
@@ -125,6 +130,30 @@ class TelegramBotService {
             try {
                 if (data === 'menu_main') {
                     await this.sendWelcomeMenu(chatId, (query.from && query.from.first_name) || 'User', messageId, userLang);
+                } else if (data === 'menu_anamnesis') {
+                    await this.startAnamnesisFlow(chatId, '', userLang);
+                } else if (data.startsWith('anam_val:')) {
+                    const parts = data.split(':');
+                    const val = decodeURIComponent(parts.slice(2).join(':'));
+                    const anamRes = await AnamnesisService.processAnswer(chatId, val);
+                    await this.sendAnamnesisStep(chatId, anamRes, userLang);
+                } else if (data === 'anam_early_accept') {
+                    const earlyRes = await AnamnesisService.acceptEarlyExit(chatId);
+                    if (earlyRes) {
+                        await this.sendMessage(chatId, earlyRes.renderedMessage, { reply_markup: earlyRes.keyboard });
+                    }
+                } else if (data === 'anam_early_continue') {
+                    const contRes = AnamnesisService.continueAnamnesis(chatId);
+                    if (contRes) {
+                        await this.sendAnamnesisStep(chatId, contRes, userLang);
+                    }
+                } else if (data === 'anam_cancel') {
+                    AnamnesisService.cancelSession(chatId);
+                    const cancelMsg = userLang === 'en'
+                        ? '❌ Medical consultation / anamnesis has been cancelled.'
+                        : '❌ Konsultasi klinis / anamnesis telah dibatalkan.';
+                    const ui = LanguageService.getBotUIDictionary(userLang);
+                    await this.sendMessage(chatId, cancelMsg, { reply_markup: ui.mainInlineKeyboard });
                 } else if (data === 'menu_gejala') {
                     await this.sendGejalaMenu(chatId, messageId, userLang);
                 } else if (data === 'menu_obat') {
@@ -166,7 +195,27 @@ class TelegramBotService {
             const detectedLang = LanguageService.detectLanguage(text, currentLang);
             this.setUserLang(fromUser.id, msg.chat.id, detectedLang);
 
+            // 0. Active Anamnesis Session Check (User answering current Sacred Seven step)
+            if (AnamnesisService.hasActiveSession(msg.chat.id)) {
+                console.log(`[Telegram Bot] 🩺 Sacred Seven answer from @${fromUser.username || firstName}: "${text}"`);
+                const anamRes = await AnamnesisService.processAnswer(msg.chat.id, text);
+                return this.sendAnamnesisStep(msg.chat.id, anamRes, detectedLang);
+            }
+
+            // 1. Red Flag Emergency Evaluation (Wajib Sarankan ke IGD Terdekat)
+            const redFlag = AnamnesisService.checkRedFlags(text);
+            if (redFlag) {
+                console.log(`[Telegram Bot] 🚨 Red Flag Emergency detected from @${fromUser.username || firstName}: ${redFlag.label}`);
+                const emMsg = AnamnesisService.generateEmergencyMessage(redFlag, detectedLang);
+                const emKb = AnamnesisService.getEmergencyKeyboard(detectedLang);
+                return this.sendMessage(msg.chat.id, emMsg, { reply_markup: emKb });
+            }
+
             // A. Slash Commands
+            if (/^\/(anamnesis|konsultasi|keluhan)/i.test(text)) {
+                const complaint = text.replace(/^\/(anamnesis|konsultasi|keluhan)\s*/i, '').trim();
+                return this.startAnamnesisFlow(msg.chat.id, complaint, detectedLang);
+            }
             if (/^\/(start|menu)/i.test(text)) {
                 return this.sendWelcomeMenu(msg.chat.id, firstName, null, detectedLang);
             }
@@ -186,6 +235,9 @@ class TelegramBotService {
             // B. Reply Keyboard Button Clicks
             if (/^(🏠\s*(Menu Utama|Main Menu))$/i.test(text)) {
                 return this.sendWelcomeMenu(msg.chat.id, firstName, null, detectedLang);
+            }
+            if (/^(🩺\s*(Konsultasi Keluhan|Anamnesis|Sacred Seven))/i.test(text)) {
+                return this.startAnamnesisFlow(msg.chat.id, '', detectedLang);
             }
             if (/^(🩺\s*(Cek Gejala & Topik|Symptoms & Topics|Check Symptoms & Topics|Priksa Gejala))$/i.test(text)) {
                 return this.sendGejalaMenu(msg.chat.id, null, detectedLang);
@@ -209,10 +261,53 @@ class TelegramBotService {
 
             // D. Health Question or Clinical Inquiry
             if (!text.startsWith('/')) {
+                // If user reports personal symptom/complaint, initiate Sacred Seven Anamnesis!
+                if (this.isPersonalComplaint(text)) {
+                    console.log(`[Telegram Bot] 🩺 Patient symptom complaint detected from @${fromUser.username || firstName}. Initiating Sacred Seven Anamnesis.`);
+                    return this.startAnamnesisFlow(msg.chat.id, text, detectedLang);
+                }
+
                 console.log(`[Telegram Bot] 📩 Message received from @${fromUser.username || firstName} [Lang: ${detectedLang}]: "${text}"`);
                 await this.processUserQuestion(msg.chat.id, fromUser.id, fromUser, text, msg.message_id, detectedLang);
             }
         });
+    }
+
+    /**
+     * Determines whether user text represents a personal health complaint
+     */
+    isPersonalComplaint(text) {
+        if (!text || typeof text !== 'string') return false;
+        const clean = text.toLowerCase().trim();
+
+        // General informational queries that should NOT trigger clinical anamnesis
+        if (/^(bagaimana\s+(cara\s+)?(mengatasi|penanganan|tata\s+laksana|mengobati)|apa\s+(itu|obat|penyebab|gejala)|jelaskan|panduan|tips|info)\b/i.test(clean) &&
+            !/(saya|aku|dok|ku)\b/i.test(clean)) {
+            return false;
+        }
+
+        const hasDoctorGreeting = /^(dok|halo dok|selamat (pagi|siang|sore|malam) dok|dok,)\b/i.test(clean) || /\bdok\b/i.test(clean);
+        const hasFirstPerson = /(^|\b)(saya|aku|badanku|tubuhku|kepalaku|perutku|dada|tengkuk|pundak|kaki|pinggang|lutut|leher|tenggorokan|kulit|mata|hidung)(\b|$)/i.test(clean);
+        const hasSymptomWords = /(sakit|nyeri|perih|ngilu|pegal|kaku|pusing|cekot|mual|muntah|kembung|begah|demam|sumeng|menggigil|meriang|panas|batuk|pilek|meler|tersumbat|gatal|bentol|kesemutan|lemas|mengantuk|kencing|haus|luka|bengkak|sesak|terbakar|keracunan|makanan basi|intoksikasi)/i.test(clean);
+
+        return (hasFirstPerson && hasSymptomWords) || (hasDoctorGreeting && hasSymptomWords) || clean.startsWith('keluhan:');
+    }
+
+    /**
+     * Start Sacred Seven Anamnesis flow for a user
+     */
+    async startAnamnesisFlow(chatId, initialComplaint = '', lang = null) {
+        const userLang = lang || this.getUserLang(chatId, chatId);
+        const startRes = AnamnesisService.startSession(chatId, initialComplaint, userLang);
+        return this.sendMessage(chatId, startRes.renderedMessage, { reply_markup: startRes.keyboard });
+    }
+
+    /**
+     * Deliver the result or next step of anamnesis to user
+     */
+    async sendAnamnesisStep(chatId, anamResult, lang = null) {
+        if (!anamResult) return;
+        return this.sendMessage(chatId, anamResult.renderedMessage, { reply_markup: anamResult.keyboard });
     }
 
     /**
@@ -526,6 +621,10 @@ class TelegramBotService {
             replyMarkup = ui.actionButtonsDoctor;
         } else if (result.status === 'REJECTED_NON_HEALTH') {
             replyMarkup = ui.actionButtonsNonHealth;
+        } else if (result.status === 'EMERGENCY_IGD') {
+            replyMarkup = result.keyboard;
+        } else if (result.keyboard) {
+            replyMarkup = result.keyboard;
         }
 
         await this.sendMessage(chatId, result.responseMessage, {
@@ -536,7 +635,7 @@ class TelegramBotService {
     /**
      * Core Pipeline for processing any user message (Used by Telegram, n8n, and Web Simulator)
      */
-    async handleIncomingMessage({ telegramChatId, telegramUserId, username, firstName, lastName, messageId, text, forcedLang = null }) {
+    async handleIncomingMessage({ telegramChatId, telegramUserId, username, firstName, lastName, messageId, text, forcedLang = null, options = {} }) {
         const cleanText = (text || '').trim();
         const chatId = String(telegramChatId || 'sim-user-01');
         const currentLang = forcedLang || this.getUserLang(telegramUserId, chatId);
@@ -557,7 +656,67 @@ class TelegramBotService {
             db.update('users', user.id, { preferred_lang: userLang });
         }
 
-        // 2. FIRST: Search Active Knowledge Base (with multi-language synonym bridging)
+        // 2. Active Anamnesis Session Check (Session continuation)
+        if (AnamnesisService.hasActiveSession(chatId)) {
+            const anamResult = await AnamnesisService.processAnswer(chatId, cleanText);
+            return {
+                status: anamResult.status || 'ANAMNESIS_IN_PROGRESS',
+                isEmergency: Boolean(anamResult.isEmergency),
+                isHealth: true,
+                language: userLang,
+                anamnesis: anamResult,
+                responseMessage: anamResult.renderedMessage,
+                keyboard: anamResult.keyboard,
+                doctorQueued: false
+            };
+        }
+
+        // 3. Triage Evaluasi Red Flag Emergency (Wajib Rujuk ke IGD Terdekat)
+        const redFlag = AnamnesisService.checkRedFlags(cleanText);
+        if (redFlag) {
+            const emergencyResponse = AnamnesisService.generateEmergencyMessage(redFlag, userLang);
+            const qRecord = db.insert('questions', {
+                user_id: user.id,
+                telegram_chat_id: chatId,
+                telegram_message_id: String(messageId || ''),
+                question_text: cleanText,
+                is_health_topic: true,
+                relevance_score: 1.0,
+                matched_knowledge_id: null,
+                status: 'EMERGENCY_IGD',
+                bot_response: emergencyResponse
+            });
+
+            return {
+                status: 'EMERGENCY_IGD',
+                isEmergency: true,
+                isHealth: true,
+                language: userLang,
+                questionId: qRecord.id,
+                emergencyInfo: redFlag,
+                responseMessage: emergencyResponse,
+                keyboard: AnamnesisService.getEmergencyKeyboard(userLang),
+                doctorQueued: false
+            };
+        }
+
+        // 4. Explicit Anamnesis Request
+        if (/^\/(anamnesis|konsultasi|keluhan)/i.test(cleanText) || (options && options.mode === 'anamnesis')) {
+            const initialComplaint = cleanText.replace(/^\/(anamnesis|konsultasi|keluhan)\s*/i, '').trim();
+            const startRes = AnamnesisService.startSession(chatId, initialComplaint, userLang);
+            return {
+                status: startRes.isEmergency ? 'EMERGENCY_IGD' : 'ANAMNESIS_STARTED',
+                isEmergency: Boolean(startRes.isEmergency),
+                isHealth: true,
+                language: userLang,
+                anamnesis: startRes,
+                responseMessage: startRes.renderedMessage,
+                keyboard: startRes.keyboard,
+                doctorQueued: false
+            };
+        }
+
+        // 5. Search Active Knowledge Base (with multi-language synonym bridging)
         const searchResult = await KnowledgeRetriever.search(cleanText, 0.58, userLang);
 
         // 3. IF KNOWLEDGE FOUND IN KB -> Answer directly from Knowledge Base in user's language
@@ -672,7 +831,24 @@ class TelegramBotService {
             const userLang = LanguageService.detectLanguage(text, currentLang);
             this.setUserLang(msg.from && msg.from.id, msg.chat.id, userLang);
 
-            if (text.startsWith('/start') || text.startsWith('/menu')) {
+            // Active session check
+            if (AnamnesisService.hasActiveSession(msg.chat.id)) {
+                const anamRes = await AnamnesisService.processAnswer(msg.chat.id, text);
+                return this.sendAnamnesisStep(msg.chat.id, anamRes, userLang);
+            }
+
+            // Red Flag check
+            const redFlag = AnamnesisService.checkRedFlags(text);
+            if (redFlag) {
+                const emMsg = AnamnesisService.generateEmergencyMessage(redFlag, userLang);
+                const emKb = AnamnesisService.getEmergencyKeyboard(userLang);
+                return this.sendMessage(msg.chat.id, emMsg, { reply_markup: emKb });
+            }
+
+            if (/^\/(anamnesis|konsultasi|keluhan)/i.test(text)) {
+                const complaint = text.replace(/^\/(anamnesis|konsultasi|keluhan)\s*/i, '').trim();
+                await this.startAnamnesisFlow(msg.chat.id, complaint, userLang);
+            } else if (text.startsWith('/start') || text.startsWith('/menu')) {
                 await this.sendWelcomeMenu(msg.chat.id, msg.from && msg.from.first_name, null, userLang);
             } else if (text.startsWith('/help')) {
                 await this.sendHelpMessage(msg.chat.id, null, userLang);
@@ -683,7 +859,11 @@ class TelegramBotService {
             } else if (text.startsWith('/status')) {
                 await this.sendStatusMessage(msg.chat.id, msg.from && msg.from.id, null, userLang);
             } else {
-                await this.processUserQuestion(msg.chat.id, msg.from && msg.from.id, msg.from || {}, text, msg.message_id, userLang);
+                if (this.isPersonalComplaint(text)) {
+                    await this.startAnamnesisFlow(msg.chat.id, text, userLang);
+                } else {
+                    await this.processUserQuestion(msg.chat.id, msg.from && msg.from.id, msg.from || {}, text, msg.message_id, userLang);
+                }
             }
         } else if (update.callback_query) {
             const query = update.callback_query;
@@ -702,6 +882,30 @@ class TelegramBotService {
             if (!chatId) return;
             if (data === 'menu_main') {
                 await this.sendWelcomeMenu(chatId, (query.from && query.from.first_name) || 'User', messageId, userLang);
+            } else if (data === 'menu_anamnesis') {
+                await this.startAnamnesisFlow(chatId, '', userLang);
+            } else if (data.startsWith('anam_val:')) {
+                const parts = data.split(':');
+                const val = decodeURIComponent(parts.slice(2).join(':'));
+                const anamRes = await AnamnesisService.processAnswer(chatId, val);
+                await this.sendAnamnesisStep(chatId, anamRes, userLang);
+            } else if (data === 'anam_early_accept') {
+                const earlyRes = await AnamnesisService.acceptEarlyExit(chatId);
+                if (earlyRes) {
+                    await this.sendMessage(chatId, earlyRes.renderedMessage, { reply_markup: earlyRes.keyboard });
+                }
+            } else if (data === 'anam_early_continue') {
+                const contRes = AnamnesisService.continueAnamnesis(chatId);
+                if (contRes) {
+                    await this.sendAnamnesisStep(chatId, contRes, userLang);
+                }
+            } else if (data === 'anam_cancel') {
+                AnamnesisService.cancelSession(chatId);
+                const cancelMsg = userLang === 'en'
+                    ? '❌ Medical consultation / anamnesis has been cancelled.'
+                    : '❌ Konsultasi klinis / anamnesis telah dibatalkan.';
+                const ui = LanguageService.getBotUIDictionary(userLang);
+                await this.sendMessage(chatId, cancelMsg, { reply_markup: ui.mainInlineKeyboard });
             } else if (data === 'menu_gejala') {
                 await this.sendGejalaMenu(chatId, messageId, userLang);
             } else if (data === 'menu_obat') {
